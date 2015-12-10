@@ -43,16 +43,6 @@ long double dilog_r(long double x){
 }
 
 std::complex<long double> log_c(std::complex<long double> z){
-	if ((imag(z)>-1E-10)&&(imag(z)<1E-10)){
-	if(real(z) < 0){
-		std::complex<long double> ris(log_r(abs(z)),(long double) (M_PI));
-		return ris;
-	}
-	else {
-		std::complex<long double> ris(log_r(abs(z)),0.0);
-		return ris;
-	} 
-	}
 	gsl_sf_result lnr;
 	gsl_sf_result theta;
 	gsl_sf_complex_log_e(std::real(z),std::imag(z),&lnr, &theta);

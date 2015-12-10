@@ -9,6 +9,7 @@ using namespace std;
 std::complex<long double> C0(long double x1, long double x2,long double y)
 {
   //Useful quantities
+  long double epsilon=1e-20;
   long double D3=(1.+x1+x2)*(1.+x1+x2)-4.*x1*x2;
   long double delta1= (-x1+x2-1.)/sqrt(D3);
   long double delta2=(x1-x2-1.)/sqrt(D3);
@@ -21,13 +22,13 @@ std::complex<long double> C0(long double x1, long double x2,long double y)
   long double delta3m=(1.-delta3)/2.;
   std::complex<long double> rad_x1 = static_cast<std::complex<long double> > (1.+4.*y/x1); 
   std::complex<long double> rad_x2 = static_cast<std::complex<long double> > (1.+4.*y/x2); 
-  std::complex<long double> rad_y = static_cast<std::complex<long double> > (4.*y-1.); 
+  std::complex<long double> rad_y = static_cast<std::complex<long double> > (1.-4.*(y-std::complex<long double>(0.,1.)*epsilon)); 
   std::complex<long double> xmi=-x2/(2.*y)*(1.-sqrt(rad_x2));
   std::complex<long double> xpi=-x2/(2.*y)*(1.+sqrt(rad_x2));
   std::complex<long double> ymi=-x1/(2.*y)*(1.-sqrt(rad_x1));
   std::complex<long double> ypi=-x1/(2.*y)*(1.+sqrt(rad_x1));
-  std::complex<long double> zmi=1./(2.*y)*(1.- II*sqrt(rad_y));
-  std::complex<long double> zpi=1./(2.*y)*(1.+ II*std::sqrt(rad_y));
+  std::complex<long double> zmi=1./(2.*y)*(1.- sqrt(rad_y));
+  std::complex<long double> zpi=1./(2.*y)*(1.+ sqrt(rad_y));
   
   std::complex<long double> C0_ris;
   //C0 expression
@@ -41,7 +42,8 @@ std::complex<long double> C0(long double x1, long double x2,long double y)
 
 std::complex<long double> B0(long double x,long double y)
 {
-    std::complex<long double> rad_x = static_cast<std::complex<long double> > (1.-4.*y/x);
+    long double epsilon=1e-20;
+    std::complex<long double> rad_x = static_cast<std::complex<long double> > (1.-4.*(y-std::complex<long double>(0.,1.)*epsilon)/x);
    // cout <<log_c((1.+1./sqrt(rad_x))/(1.-1./sqrt(rad_x)),-1.)<< endl;
     std::complex<long double> ris= (-1./(16.*M_PI*M_PI)*sqrt(rad_x)*(log_c((1.+1./sqrt(rad_x))/(1.-1./sqrt(rad_x)))));
     return ris;
@@ -117,6 +119,7 @@ long double F_Infinitive(long double x1, long double x2, long double xp, long do
 }
 
 std::complex<long double> D_C0(long double x1, long double x2, long double y){
+  long double epsilon=1e-20;
   //Useful quantities
   long double D3=(1.+x1+x2)*(1.+x1+x2)-4.*x1*x2;
   long double delta1= (-x1+x2-1.)/sqrt(D3);
@@ -131,13 +134,13 @@ std::complex<long double> D_C0(long double x1, long double x2, long double y){
   
   std::complex<long double> rad_x1 = static_cast<std::complex<long double> > (1.+4.*y/x1); 
   std::complex<long double> rad_x2 = static_cast<std::complex<long double> > (1.+4.*y/x2); 
-  std::complex<long double> rad_y = static_cast<std::complex<long double> > (4.*y-1.); 
+  std::complex<long double> rad_y = static_cast<std::complex<long double> > (1.-4.*(y-std::complex<long double>(0.,1.)*epsilon)); 
   std::complex<long double> xmi=-x2/(2.*y)*(1.-sqrt(rad_x2));
   std::complex<long double> xpi=-x2/(2.*y)*(1.+sqrt(rad_x2));
   std::complex<long double> ymi=-x1/(2.*y)*(1.-sqrt(rad_x1));
   std::complex<long double> ypi=-x1/(2.*y)*(1.+sqrt(rad_x1));
-  std::complex<long double> zmi=1./(2.*y)*(1.- II*sqrt(rad_y));
-  std::complex<long double> zpi=1./(2.*y)*(1.+ II*sqrt(rad_y));
+  std::complex<long double> zmi=1./(2.*y)*(1.- sqrt(rad_y));
+  std::complex<long double> zpi=1./(2.*y)*(1.+ sqrt(rad_y));
   
   //Useful Derivatives
   long double D_D3=2.*(1.+x1-x2);
@@ -257,9 +260,9 @@ long double D_F_0(long double x1, long double x2, long double xp, long double y,
 
 /*** addition **/
 std::complex<long double> A1x_0(long double x1,long double yt){//FIXME //Domanda? la forma di prima come l'ha trovata
-	std::complex<long double> rad_y=static_cast<std::complex<long double> > (4.*yt-1.);
+	std::complex<long double> rad_y=static_cast<std::complex<long double> > (1.-4.*yt);
 	std::complex<long double> rad_x1=static_cast<std::complex<long double> > (1.+4.*yt/x1);
-        const std::complex<long double> L1sq = std::pow(log_c((II*sqrt(rad_y)-1.)/(II*sqrt(rad_y)+1.)),2);
+        const std::complex<long double> L1sq = std::pow(log_c((sqrt(rad_y)-1.)/(sqrt(rad_y)+1.)),2);
 		if (x1 < 1E-15){
 			std::cout << "A1(0,0), x = " << x1 << std::endl;
          return (4. + L1sq * (4.*yt - 1.))/(32. * M_PIl * M_PIl );
@@ -270,6 +273,9 @@ std::complex<long double> A1x_0(long double x1,long double yt){//FIXME //Domanda
         const long double L3 = (4.*yt -1. - x1) /((32.*M_PIl*M_PIl)*std::pow(1. + x1,2));		
         const std::complex<long double> B0term = 2*x1*(B0(-x1,yt) - B0(1.,yt))/std::pow(1+x1,2);
         return C0term * L3 + B0term + 1./(8.*M_PIl*M_PIl*(1.+x1));
+	//return B0term;
+
+  
 }
 
 

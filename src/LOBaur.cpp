@@ -4,14 +4,14 @@
 //Functions B1, C, C1, D, E
 
 std::complex<long double> LOBaur::B1(double v) {
-  std::complex<long double> rad_v = static_cast<std::complex<long double> > (1.-4.*y*x/v);
-  std::complex<long double> rad_y = static_cast<std::complex<long double> > (1.-4.*y);
+  std::complex<long double> rad_v =  static_cast<std::complex<long double> > (1.-4.*(y-std::complex<long double>(0.,1.)*epsilon)*x/v);
+  std::complex<long double> rad_y =  static_cast<std::complex<long double> > (1.-4.*(y-std::complex<long double>(0.,1.)*epsilon));
   std::complex<long double> z=0.5*(1.+sqrt(rad_v));
   std::complex<long double> zy=0.5*(1.+sqrt(rad_y));
   return (-sqrt(rad_v)*log_c(-z/(1.-z))+sqrt(rad_y)*log_c(-zy/(1.-zy)));
 }
 std::complex<long double> LOBaur::C(double v) {
-  std::complex<long double> rad_v = static_cast<std::complex<long double> > (1.-4.*y*x/v);
+  std::complex<long double> rad_v = static_cast<std::complex<long double> >  (1.-4.*(y-std::complex<long double>(0.,1.)*epsilon)*x/v);
   std::complex<long double> z=0.5*(1.+sqrt(rad_v));
   return (1./(2.*v)*pow(log_c(-z/(1.-z)),2));
 }
@@ -20,17 +20,17 @@ std::complex<long double> LOBaur::C1(double v){
 }  
 std::complex<long double> LOBaur::D(double v, double w){
   std::complex<long double> rad_vw = static_cast<std::complex<long double> > (1+4.*y*x*(x-v-w)/(v*w));
-  std::complex<long double> rad_v = static_cast<std::complex<long double> > (1.-4.*y*x/v);
-  std::complex<long double> rad_w = static_cast<std::complex<long double> > (1.-4.*y*x/w);
-  std::complex<long double> rad_y = static_cast<std::complex<long double> > (1.-4.*y);
+  std::complex<long double> rad_v = static_cast<std::complex<long double> > (1.-4.*(y-std::complex<long double>(0.,1.)*epsilon)*x/v);
+  std::complex<long double> rad_w = static_cast<std::complex<long double> > (1.-4.*(y-std::complex<long double>(0.,1.)*epsilon)*x/w);
+  std::complex<long double> rad_y = static_cast<std::complex<long double> > (1.-4.*(y-std::complex<long double>(0.,1.)*epsilon));
   std::complex<long double> xpi = 0.5*(1.+sqrt(rad_vw));
   std::complex<long double> xmi = 0.5*(1.-sqrt(rad_vw));
   std::complex<long double> yv = 0.5*(1.+sqrt(rad_v));
   std::complex<long double> yw = 0.5*(1.+sqrt(rad_w));
   std::complex<long double> yy = 0.5*(1.+sqrt(rad_y));
-  std::complex<long double> log1 = (pow(real(xmi),2)  >1.e-34) ? log_c(-xmi/xpi)*log_c(1.-v/(y*x)*xmi*xpi) :0.;
-  std::complex<long double> log2 = (pow(real(xmi),2)  >1.e-34) ? log_c(-xmi/xpi)*log_c(1.-w/(y*x)*xmi*xpi) :0.;
-  std::complex<long double> log3 = (pow(real(xmi),2)  >1.e-34) ? log_c(-xmi/xpi)*log_c(1.-1/(y)*xmi*xpi) :0.;
+  std::complex<long double> log1 = (pow(real(xmi),2)  >1.e-34) ? log_c(-xmi/xpi)*log_c(1.-std::complex<long double>(0.,1.)*epsilon-v/(y*x)*xmi*xpi) :0.;
+  std::complex<long double> log2 = (pow(real(xmi),2)  >1.e-34) ? log_c(-xmi/xpi)*log_c(1.-std::complex<long double>(0.,1.)*epsilon-w/(y*x)*xmi*xpi) :0.;
+  std::complex<long double> log3 = (pow(real(xmi),2)  >1.e-34) ? log_c(-xmi/xpi)*log_c(1.-std::complex<long double>(0.,1.)*epsilon-1/(y)*xmi*xpi) :0.;
   
   std::complex<long double> Int1=2./(sqrt(rad_vw))*
   (dilog_c(xmi/(xmi-yv))-dilog_c(xpi/(xpi-yv))+dilog_c(xmi/(yv-xpi))

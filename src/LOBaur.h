@@ -29,6 +29,8 @@ class LOBaur{
 		long double operator ()(double pt){
 			return MatrixElementFO(pt);
 		}
+		
+		
 				
 	private:
 		std::complex<long double> B1(double);
@@ -40,11 +42,15 @@ class LOBaur{
 		std::complex<long double> Ampm();
 		std::complex<long double> Ampp();
 		std::complex<long double> Appm();
-
 		long double t,u,x,y,s1,t1,u1;
 		long double _CME;	//	sqrt(s)
 		long double _mq;		//	Mass of quark
 		long double _mH;		//	Mass of Higgs
+		long double epsilon=1e-20; // Epsilon
+
+		
+		
+		
 };
 
 #endif /* __LOBAUR_H__ */

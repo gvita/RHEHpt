@@ -7,3 +7,5 @@
 */*.txt
 */*.o
 lib/*.a
+Makefile
+
