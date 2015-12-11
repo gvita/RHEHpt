@@ -387,11 +387,12 @@ std::complex<long double> A1x_0(long double x1,long double yt){
         const std::complex<long double> C0term = L1sq - std::pow(L2,2);
         const long double L3 = (4.*yt -1. - x1) /((32.*M_PIl*M_PIl)*std::pow(1. + x1,2));		
         const std::complex<long double> B0term = 2*x1*(B0(-x1,yt) - B0(1.,yt))/std::pow(1+x1,2);
-        return C0term * L3 + B0term + 1./(8.*M_PIl*M_PIl*(1.+x1));
+        return yt*(C0term * L3 + B0term + 1./(8.*M_PIl*M_PIl*(1.+x1)));
 	//return B0term;
 
   
 }
+
 
 
 

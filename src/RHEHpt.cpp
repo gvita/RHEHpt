@@ -7,13 +7,13 @@
 namespace RHEHpt{
 
 
-RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT,bool verbose):Exact_FO_ME(CME,MT,MH),_CME(CME),_mH(MH),_mT(MT),_verbose(verbose)
+RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB,bool verbose):Exact_FO_ME(CME,MT,MH),_CME(CME),_mH(MH),_mT(MT),_mB(MB),_verbose(verbose)
 {
     _s = std::pow(CME,2);   // GeV^2
    // _PDF = std::make_shared<LHAPDF::PDF>(LHAPDF::mkPDF(PDFfile,0));  // create pdf choosing the reference replica from the set
    // _as = _PDF -> alphasQ(_mH);
     _as = 0.1;
-    std::cout << _s << " " << _as << " " << _mH << " " << _mT << std::endl; 
+    std::cout << _s << " " << _as << " " << _mH << " " << _mT << " "<< _mB << std::endl; 
     
 }
 
@@ -79,21 +79,20 @@ double RHEHpt::hpt_infinite(double xp,double N) const{
     return core_hpt_infinite(N)*xp_factor;
 }
 
-//FIXME Tre versioni diverse per anche interferenza e totale
-int _core_hptfinite(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
+//FIXME Quattro versioni diverse per selezionare il pezzo interessante o il totale
+int _core_hptfinite_top(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
 	res[0] = 0.;
 	double * p = (double *) pars;
 	const long double xp = p[0];
 	const long double yt = p[1];
-	const long double M = p[2];
+	const long double M = p[3];
 	const long double x1 = 0.25*x[0];
 	const long double sqrtx1 = std::sqrt(x1);
 	const long double r = x[1];
 	const long double x2 = 1. + x1 + 2.* sqrtx1 *(1.-2.*r);
 	const long double x2_red = 2.25 - 2.*r; // x2(1/4,r)
-	long double DF0,F0,F0red,DF1;
-	DF0 = D_F_0( x1, x2, xp, yt, r );
-	DF1 = D_F_0( x2, x1, xp, yt, r );		
+	long double DF0,F0,F0red;
+	DF0 = D_F_0( x1, x2, xp, yt, r );		
 	F0 = F_0( x1, x2, xp, yt, r);
 	F0red = F_0(0.25,x2_red,xp,yt,r);
 
@@ -111,23 +110,143 @@ int _core_hptfinite(const int *ndim, const double x[], const int *ncomp, double 
 	res[0] += M * (std::pow( x1p*x2p,M)/(x[0]*x2p)) * (1. + 2.*sqrt(x1p) )*F_inf/std::sqrt(2.*x1p*x2p + 2.*x1p + 2.*x2p - x1p*x1p - x2p*x2p -1.);
     return 0;
 }
+int _core_hptfinite_bottom(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
+	res[0] = 0.;
+	double * p = (double *) pars;
+	const long double xp = p[0];
+	const long double yb = p[2];
+	const long double M = p[3];
+	const long double x1 = 0.25*x[0];
+	const long double sqrtx1 = std::sqrt(x1);
+	const long double r = x[1];
+	const long double x2 = 1. + x1 + 2.* sqrtx1 *(1.-2.*r);
+	const long double x2_red = 2.25 - 2.*r; // x2(1/4,r)
+	long double DF0,F0,F0red;
+	DF0 = D_F_0( x1, x2, xp, yb, r );		
+	F0 = F_0( x1, x2, xp, yb, r);
+	F0red = F_0(0.25,x2_red,xp,yb,r);
+
+	const long double derivative_term = std::pow(x1*x2,M)/x2  * ( DF0 - (1.-M) * F0* (1.+sqrtx1 - 2.*r)/(sqrtx1*x2) );
+
+	const long double surface_term = std::pow(x2_red/4.,M-1)*F0red;
+
+	/** P1 Total **/	
+	res[0] = 0.25*(surface_term - derivative_term)/std::sqrt(r*(1.-r));
+
+	// and P_2, i.e. the term not integrated by parts
+	const long double x1p = 0.25/x[0];
+	const long double x2p = x[1] + x[1]/std::sqrt(x[0]) + x1p;
+	const long double F_inf = F_Infinitive(x1p,x2p,xp,yb);
+	res[0] += M * (std::pow( x1p*x2p,M)/(x[0]*x2p)) * (1. + 2.*sqrt(x1p) )*F_inf/std::sqrt(2.*x1p*x2p + 2.*x1p + 2.*x2p - x1p*x1p - x2p*x2p -1.);
+    return 0;
+}
+int _core_hptfinite_inter(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
+	res[0] = 0.;
+	double * p = (double *) pars;
+	const long double xp = p[0];
+	const long double yt = p[1];
+	const long double yb = p[2];
+	const long double M = p[3];
+	const long double x1 = 0.25*x[0];
+	const long double sqrtx1 = std::sqrt(x1);
+	const long double r = x[1];
+	const long double x2 = 1. + x1 + 2.* sqrtx1 *(1.-2.*r);
+	const long double x2_red = 2.25 - 2.*r; // x2(1/4,r)
+	long double DF0,F0,F0red;
+	DF0 = D_F_0_inter( x1, x2, xp, yt, yb, r );		
+	F0 = F_0_inter( x1, x2, xp, yt,yb, r);
+	F0red = F_0_inter(0.25,x2_red,xp,yt,yb,r);
+
+	const long double derivative_term = std::pow(x1*x2,M)/x2  * ( DF0 - (1.-M) * F0* (1.+sqrtx1 - 2.*r)/(sqrtx1*x2) );
+
+	const long double surface_term = std::pow(x2_red/4.,M-1)*F0red;
+
+	/** P1 Total **/	
+	res[0] = 0.25*(surface_term - derivative_term)/std::sqrt(r*(1.-r));
+
+	// and P_2, i.e. the term not integrated by parts
+	const long double x1p = 0.25/x[0];
+	const long double x2p = x[1] + x[1]/std::sqrt(x[0]) + x1p;
+	const long double F_inf = F_Infinitive_inter(x1p,x2p,xp,yt,yb);
+	res[0] += M * (std::pow( x1p*x2p,M)/(x[0]*x2p)) * (1. + 2.*sqrt(x1p) )*F_inf/std::sqrt(2.*x1p*x2p + 2.*x1p + 2.*x2p - x1p*x1p - x2p*x2p -1.);
+    return 0;
+}
+int _core_hptfinite_tot(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
+	res[0] = 0.;
+	double * p = (double *) pars;
+	const long double xp = p[0];
+	const long double yt = p[1];
+	const long double yb = p[2];
+	const long double M = p[3];
+	const long double x1 = 0.25*x[0];
+	const long double sqrtx1 = std::sqrt(x1);
+	const long double r = x[1];
+	const long double x2 = 1. + x1 + 2.* sqrtx1 *(1.-2.*r);
+	const long double x2_red = 2.25 - 2.*r; // x2(1/4,r)
+	long double DF0,F0,F0red;
+	DF0 = D_F_0_tot( x1, x2, xp, yt,yb, r );		
+	F0 = F_0_tot( x1, x2, xp, yt,yb, r);
+	F0red = F_0_tot(0.25,x2_red,xp,yt,yb,r);
+
+	const long double derivative_term = std::pow(x1*x2,M)/x2  * ( DF0 - (1.-M) * F0* (1.+sqrtx1 - 2.*r)/(sqrtx1*x2) );
+
+	const long double surface_term = std::pow(x2_red/4.,M-1)*F0red;
+
+	/** P1 Total **/	
+	res[0] = 0.25*(surface_term - derivative_term)/std::sqrt(r*(1.-r));
+
+	// and P_2, i.e. the term not integrated by parts
+	const long double x1p = 0.25/x[0];
+	const long double x2p = x[1] + x[1]/std::sqrt(x[0]) + x1p;
+	const long double F_inf = F_Infinitive_tot(x1p,x2p,xp,yt,yb);
+	res[0] += M * (std::pow( x1p*x2p,M)/(x[0]*x2p)) * (1. + 2.*sqrt(x1p) )*F_inf/std::sqrt(2.*x1p*x2p + 2.*x1p + 2.*x2p - x1p*x1p - x2p*x2p -1.);
+    return 0;
+}
 
 //FIXME aggiungere massa bottom a private classe e cambiare F_costant
 double RHEHpt::hpt_finite(double xp, double N) const
 {
 	double M = _an_dim(_as/N);
-	double p[4] = { xp, get_yt(), M };
+	double p[4] = { xp, get_yt(), get_yb(), M };
 	double the_integral[1], error[1], prob[1];
 	double epsrel=1.e-3, epsabs=1.e-15;
 	int last = 4;
 	int verbose = 0;
 	int nregions, neval, fail;
-	Cuhre(2, 1, _core_hptfinite, &p, 1,
-	epsrel, epsabs, verbose | last,
-	0, 500000, 9,
-	NULL, NULL,
-	&nregions, &neval, &fail, the_integral, error, prob);
-
+	switch (choice){
+	  case(1):{
+	    Cuhre(2, 1, _core_hptfinite_top, &p, 1,
+	    epsrel, epsabs, verbose | last,
+	    0, 500000, 9,
+	    NULL, NULL,
+	    &nregions, &neval, &fail, the_integral, error, prob);
+	    break;  
+	  }
+	  case(2):{
+	    Cuhre(2, 1, _core_hptfinite_bottom, &p, 1,
+	    epsrel, epsabs, verbose | last,
+	    0, 500000, 9,
+	    NULL, NULL,
+	    &nregions, &neval, &fail, the_integral, error, prob);
+	    break;
+	  }
+	  case(3):{
+	    Cuhre(2, 1, _core_hptfinite_inter, &p, 1,
+	    epsrel, epsabs, verbose | last,
+	    0, 500000, 9,
+	    NULL, NULL,
+	    &nregions, &neval, &fail, the_integral, error, prob);
+	    break; 
+	  }
+	  case(4):{
+	    Cuhre(2, 1, _core_hptfinite_tot, &p, 1,
+	    epsrel, epsabs, verbose | last,
+	    0, 500000, 9,
+	    NULL, NULL,
+	    &nregions, &neval, &fail, the_integral, error, prob);
+	    break;
+	  }
+	}
 	const double F_constant = 4608.*std::pow(M_PI,3.);
 	std::cout << "hpt_finite integral (" << xp << ") = " << the_integral[0] << " ± " << error[0] << "\tp = " << prob[0] << std::endl;
 	std::cout << std::endl;
@@ -148,26 +267,45 @@ unsigned int factorial(unsigned int n)
   return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;
 }
 
-double I_1_2(unsigned j, unsigned k,double xp,double yt);
-double I_3(unsigned j, unsigned k,double xp,double yt);
-double half_C(unsigned j, unsigned k,double xp,double yt){
-	return (I_1_2(j,k,xp,yt) + I_3(j,k,xp,yt))/(factorial(j-1) * factorial(k));
+double I_1_2(unsigned j, unsigned k,double xp,double yt, double yb, int choice);
+double I_3(unsigned j, unsigned k,double xp,double yt, double yb, int choice);
+double half_C(unsigned j, unsigned k,double xp,double yt, double yb, int choice){
+	return (I_1_2(j,k,xp,yt,yb,choice) + I_3(j,k,xp,yt,yb,choice))/(factorial(j-1) * factorial(k));
 	
 }
 
 double RHEHpt::C(unsigned j, unsigned k,double xp) const
 {
 	const double yt = (_mT*_mT) / (_mH*_mH);
+	const double yb = (_mB*_mB) / (_mH*_mH);
 	const double F_constant = 4608.*std::pow(M_PI,3.);
 	if ( k*j != 0 ) {
     	if( j != k )
-			return F_constant * (half_C(j,k,xp,yt) + half_C(k,j,xp,yt));
+			return F_constant * (half_C(j,k,xp,yt,yb,choice) + half_C(k,j,xp,yt,yb,choice));
 		else
-			return 2. * F_constant * half_C(j,k,xp,yt);
+			return 2. * F_constant * half_C(j,k,xp,yt,yb,choice);
 	}
 	else if ( k + j > 1.) return 0.;
-	else return M_PI * F_constant * std::norm(A1x_0(xp,yt)); // checked against c0 infinite
+	else switch (choice){
+	  case(1): {
+	    return M_PI * F_constant * std::norm(A1x_0(xp,yt)); // checked against c0 infinite
+	    break; 
+	  }
+	  case(2): {
+	    return M_PI* F_constant * std::norm(A1x_0(xp,yb));
+	    break;
+	  }
+	  case(3): {
+	    return M_PI * F_constant*real(A1x_0(xp,yt)*std::conj(A1x_0(xp,yb))+std::conj(A1x_0(xp,yt))*A1x_0(xp,yb));
+	    break;
+	  }
+	  case(4): {
+	    return M_PI * F_constant*real((A1x_0(xp,yt)+A1x_0(xp,yb))*std::conj(A1x_0(xp,yt)+A1x_0(xp,yb)));
+	    break;
+	  }
+	}
 }
+
 
 std::vector< std::array<unsigned,2> > RHEHpt::partition_of(unsigned n) const
 {
@@ -290,15 +428,16 @@ double RHEHpt::pt_distr_series(unsigned order, double xp,double N, bool HQ) cons
 
 /************************************* I_1_2 *************************************/
 
-int _core_I_1_2(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
+//Four version (only top, only bottom, interference, total)
+int _core_I_1_2_top(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
 	res[0] = 0.;
 	if(x[0] < 0.25){
 		// I_2 calculation
 		double * p = (double *) pars;
 	    const long double xp = p[0];
 	    const long double yt = p[1];
-	    const unsigned j = p[2];
-	    const unsigned k = p[3];
+	    const unsigned j = p[3];
+	    const unsigned k = p[4];
 		const long double x1 = x[0];
 		const long double sqrtx1 = std::sqrt(x1);
 		const long double r = x[1];
@@ -329,20 +468,165 @@ int _core_I_1_2(const int *ndim, const double x[], const int *ncomp, double res[
 	return 0;
 }
 
+int _core_I_1_2_bottom(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
+	res[0] = 0.;
+	if(x[0] < 0.25){
+		// I_2 calculation
+		double * p = (double *) pars;
+	    const long double xp = p[0];
+	    const long double yb = p[2];
+	    const unsigned j = p[3];
+	    const unsigned k = p[4];
+		const long double x1 = x[0];
+		const long double sqrtx1 = std::sqrt(x1);
+		const long double r = x[1];
+		const long double x2 = 1. + x1 + 2.* sqrtx1 *(1.-2.*r);
+		const long double logjx2 = std::pow(std::log(x2),j-1);
 
-double I_1_2(unsigned j, unsigned k,double xp,double yt){
-	double p[4] = { xp, yt,static_cast<double>(j),static_cast<double>(k) };
+		const long double x2_red = 2.25 - 2.*r; // x2(1/4,r)
+		long double DF0,F0,F0red;
+		DF0 = D_F_0( x1, x2, xp, yb, r );
+		F0 = F_0( x1, x2, xp, yb, r);
+		F0red = F_0(0.25,x2_red,xp,yb,r);
+		const long double C1 = (logjx2 / x2) * DF0 ;
+		long double C2 = logjx2 * F0* (1.+sqrtx1 - 2.*r)/(sqrtx1*x2*x2);
+
+		if( j > 1 ) 
+			C2 -= (j-1.) * std::pow(std::log(xp),j-2) * F0* (1.+sqrtx1 - 2.*r)/(sqrtx1*x2*x2);
+
+		// I_1 calculation
+
+		const long double I1_numerator = std::pow(std::log(0.25),k)*std::pow(std::log(x2_red),j-1)*F0red/x2_red;
+		
+		/** Total **/
+		
+		// 4*I1_numerator because I_1 is an integral on dr, here we are integrating in dr dx  
+		res[0] = (4. * I1_numerator -  (C1 - C2 )*std::pow(std::log(x1),k) )/std::sqrt(r*(1.-r));
+		
+	}
+	return 0;
+}
+int _core_I_1_2_inter(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
+	res[0] = 0.;
+	if(x[0] < 0.25){
+		// I_2 calculation
+		double * p = (double *) pars;
+	    const long double xp = p[0];
+	    const long double yt = p[1];
+	    const long double yb = p[2];
+	    const unsigned j = p[3];
+	    const unsigned k = p[4];
+		const long double x1 = x[0];
+		const long double sqrtx1 = std::sqrt(x1);
+		const long double r = x[1];
+		const long double x2 = 1. + x1 + 2.* sqrtx1 *(1.-2.*r);
+		const long double logjx2 = std::pow(std::log(x2),j-1);
+
+		const long double x2_red = 2.25 - 2.*r; // x2(1/4,r)
+		long double DF0,F0,F0red;
+		DF0 = D_F_0_inter( x1, x2, xp, yt,yb, r );
+		F0 = F_0_inter( x1, x2, xp, yt, yb, r);
+		F0red = F_0_inter(0.25,x2_red,xp,yt, yb,r);
+		const long double C1 = (logjx2 / x2) * DF0 ;
+		long double C2 = logjx2 * F0* (1.+sqrtx1 - 2.*r)/(sqrtx1*x2*x2);
+
+		if( j > 1 ) 
+			C2 -= (j-1.) * std::pow(std::log(xp),j-2) * F0* (1.+sqrtx1 - 2.*r)/(sqrtx1*x2*x2);
+
+		// I_1 calculation
+
+		const long double I1_numerator = std::pow(std::log(0.25),k)*std::pow(std::log(x2_red),j-1)*F0red/x2_red;
+		
+		/** Total **/
+		
+		// 4*I1_numerator because I_1 is an integral on dr, here we are integrating in dr dx  
+		res[0] = (4. * I1_numerator -  (C1 - C2 )*std::pow(std::log(x1),k) )/std::sqrt(r*(1.-r));
+		
+	}
+	return 0;
+}
+int _core_I_1_2_tot(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
+	res[0] = 0.;
+	if(x[0] < 0.25){
+		// I_2 calculation
+		double * p = (double *) pars;
+	    const long double xp = p[0];
+	    const long double yt = p[1];
+	    const long double yb = p[2];
+	    const unsigned j = p[3];
+	    const unsigned k = p[4];
+		const long double x1 = x[0];
+		const long double sqrtx1 = std::sqrt(x1);
+		const long double r = x[1];
+		const long double x2 = 1. + x1 + 2.* sqrtx1 *(1.-2.*r);
+		const long double logjx2 = std::pow(std::log(x2),j-1);
+
+		const long double x2_red = 2.25 - 2.*r; // x2(1/4,r)
+		long double DF0,F0,F0red;
+		DF0 = D_F_0_tot( x1, x2, xp, yt,yb, r );
+		F0 = F_0_tot( x1, x2, xp, yt,yb, r);
+		F0red = F_0_tot(0.25,x2_red,xp,yt,yb,r);
+		const long double C1 = (logjx2 / x2) * DF0 ;
+		long double C2 = logjx2 * F0* (1.+sqrtx1 - 2.*r)/(sqrtx1*x2*x2);
+
+		if( j > 1 ) 
+			C2 -= (j-1.) * std::pow(std::log(xp),j-2) * F0* (1.+sqrtx1 - 2.*r)/(sqrtx1*x2*x2);
+
+		// I_1 calculation
+
+		const long double I1_numerator = std::pow(std::log(0.25),k)*std::pow(std::log(x2_red),j-1)*F0red/x2_red;
+		
+		/** Total **/
+		
+		// 4*I1_numerator because I_1 is an integral on dr, here we are integrating in dr dx  
+		res[0] = (4. * I1_numerator -  (C1 - C2 )*std::pow(std::log(x1),k) )/std::sqrt(r*(1.-r));
+		
+	}
+	return 0;
+}
+
+//Inserted switch
+double I_1_2(unsigned j, unsigned k,double xp,double yt,double yb,int choice){
+	double p[5] = { xp, yt,yb,static_cast<double>(j),static_cast<double>(k) };
 	double the_integral[1], error[1], prob[1];
 	double epsrel=1.e-3, epsabs=1.e-15;
 	int last = 4;
 	int verbose = 0;
 	int nregions, neval, fail;
-
-	Cuhre(2, 1, _core_I_1_2, &p, 1,
-	epsrel, epsabs, verbose | last,
-	0, 500000, 9,
-	NULL, NULL,
-	&nregions, &neval, &fail, the_integral, error, prob);
+	switch (choice) {
+	  case(1):{
+	    Cuhre(2, 1, _core_I_1_2_top, &p, 1,
+	    epsrel, epsabs, verbose | last,
+	    0, 500000, 9,
+	    NULL, NULL,
+	    &nregions, &neval, &fail, the_integral, error, prob);
+	    break;
+	  }
+	  case(2):{
+	    Cuhre(2, 1, _core_I_1_2_bottom, &p, 1,
+	    epsrel, epsabs, verbose | last,
+	    0, 500000, 9,
+	    NULL, NULL,
+	    &nregions, &neval, &fail, the_integral, error, prob);
+	    break;
+	  }
+	  case(3):{
+	    Cuhre(2, 1, _core_I_1_2_inter, &p, 1,
+	    epsrel, epsabs, verbose | last,
+	    0, 500000, 9,
+	    NULL, NULL,
+	    &nregions, &neval, &fail, the_integral, error, prob);
+	    break;
+	  }
+	  case(4):{
+	    Cuhre(2, 1, _core_I_1_2_tot, &p, 1,
+	    epsrel, epsabs, verbose | last,
+	    0, 500000, 9,
+	    NULL, NULL,
+	    &nregions, &neval, &fail, the_integral, error, prob);
+	    break;
+	  }
+	}	        
 	std::cout << "I_2 integral (" << j << "," << k << "," << xp << ") = " << the_integral[0] << " ± " << error[0] << "\tp = " << prob[0] << std::endl;
 	std::cout << std::endl;
     return the_integral[0];
@@ -351,33 +635,109 @@ double I_1_2(unsigned j, unsigned k,double xp,double yt){
 
 /************************************* I_3 *************************************/
 
-int _core_I_3(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){ // TO DO rescale x1 to 1/4 -> 1 and put this inside _core_I_1_2
+//Four version (only top, only bottom, interference, total)
+int _core_I_3_top(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){ // TO DO rescale x1 to 1/4 -> 1 and put this inside _core_I_1_2
 	res[0] = 0.;
 	double * p = (double *) pars;
     const long double xp = p[0];
     const long double yt = p[1];
-    const unsigned j = p[2];
-    const unsigned k = p[3];
+    const long double yb = p[2];
+    const unsigned j = p[3];
+    const unsigned k = p[4];
 	const long double x1 = 0.25/x[0];
 	const long double x2 = x[1] + x[1]/std::sqrt(x[0]) + x1;
-	res[0] = k * ( std::pow(std::log(x1),k-1) * std::pow(std::log(x2),j-1)/(x[0] * x2))*(1. + 2.*sqrt(x1) )*F_Infinitive(x1,x2,xp,yt)/std::sqrt(2.*x1*x2 + 2.*x1 + 2.*x2 - x1*x1 - x2*x2 -1.);
+	res[0] = k * ( std::pow(std::log(x1),k-1) * std::pow(std::log(x2),j-1)/(x[0] * x2))
+	*(1. + 2.*sqrt(x1) )*F_Infinitive(x1,x2,xp,yt)/std::sqrt(2.*x1*x2 + 2.*x1 + 2.*x2 - x1*x1 - x2*x2 -1.);
 	return 0;
-}	
+}
 
+int _core_I_3_bottom(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){ // TO DO rescale x1 to 1/4 -> 1 and put this inside _core_I_1_2
+	res[0] = 0.;
+	double * p = (double *) pars;
+    const long double xp = p[0];
+    const long double yt = p[1];
+    const long double yb = p[2];
+    const unsigned j = p[3];
+    const unsigned k = p[4];
+	const long double x1 = 0.25/x[0];
+	const long double x2 = x[1] + x[1]/std::sqrt(x[0]) + x1;
+	res[0] = k * ( std::pow(std::log(x1),k-1) * std::pow(std::log(x2),j-1)/(x[0] * x2))
+	*(1. + 2.*sqrt(x1) )*F_Infinitive(x1,x2,xp,yb)/std::sqrt(2.*x1*x2 + 2.*x1 + 2.*x2 - x1*x1 - x2*x2 -1.);
+	return 0;
+}
 
-double I_3(unsigned j, unsigned k,double xp,double yt){
-	double p[4] = { xp, yt,static_cast<double>(j),static_cast<double>(k) };
+int _core_I_3_inter(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){ // TO DO rescale x1 to 1/4 -> 1 and put this inside _core_I_1_2
+	res[0] = 0.;
+	double * p = (double *) pars;
+    const long double xp = p[0];
+    const long double yt = p[1];
+    const long double yb = p[2];
+    const unsigned j = p[3];
+    const unsigned k = p[4];
+	const long double x1 = 0.25/x[0];
+	const long double x2 = x[1] + x[1]/std::sqrt(x[0]) + x1;
+	res[0] = k * ( std::pow(std::log(x1),k-1) * std::pow(std::log(x2),j-1)/(x[0] * x2))
+	*(1. + 2.*sqrt(x1) )*F_Infinitive_inter(x1,x2,xp,yt,yb)/std::sqrt(2.*x1*x2 + 2.*x1 + 2.*x2 - x1*x1 - x2*x2 -1.);
+	return 0;
+}
+
+int _core_I_3_tot(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){ // TO DO rescale x1 to 1/4 -> 1 and put this inside _core_I_1_2
+	res[0] = 0.;
+	double * p = (double *) pars;
+    const long double xp = p[0];
+    const long double yt = p[1];
+    const long double yb = p[2];
+    const unsigned j = p[3];
+    const unsigned k = p[4];
+	const long double x1 = 0.25/x[0];
+	const long double x2 = x[1] + x[1]/std::sqrt(x[0]) + x1;
+	res[0] = k * ( std::pow(std::log(x1),k-1) * std::pow(std::log(x2),j-1)/(x[0] * x2))
+	*(1. + 2.*sqrt(x1) )*F_Infinitive_tot(x1,x2,xp,yt,yb)/std::sqrt(2.*x1*x2 + 2.*x1 + 2.*x2 - x1*x1 - x2*x2 -1.);
+	return 0;
+}
+
+//inserted switch
+double I_3(unsigned j, unsigned k,double xp,double yt, double yb, int choice){
+	double p[5] = { xp, yt,static_cast<double>(j),static_cast<double>(k) };
 	double the_integral[1], error[1], prob[1];
 	double epsrel=1.e-3, epsabs=1.e-15;
 	int last = 4;
 	int verbose = 0;
 	int nregions, neval, fail;
-
-	Cuhre(2, 1, _core_I_3, &p, 1,
-	epsrel, epsabs, verbose | last,
-	0, 500000, 9,
-	NULL, NULL,
-	&nregions, &neval, &fail, the_integral, error, prob);
+	switch(choice){
+	  case (1):{
+	    Cuhre(2, 1, _core_I_3_top, &p, 1,
+	    epsrel, epsabs, verbose | last,
+	    0, 500000, 9,
+	    NULL, NULL,
+	    &nregions, &neval, &fail, the_integral, error, prob);
+	    break;
+	  }
+	  case(2):{
+	    Cuhre(2, 1, _core_I_3_bottom, &p, 1,
+	    epsrel, epsabs, verbose | last,
+	    0, 500000, 9,
+	    NULL, NULL,
+	    &nregions, &neval, &fail, the_integral, error, prob);
+	    break;
+	  }
+	  case(3):{
+	    Cuhre(2, 1, _core_I_3_inter, &p, 1,
+	    epsrel, epsabs, verbose | last,
+	    0, 500000, 9,
+	    NULL, NULL,
+	    &nregions, &neval, &fail, the_integral, error, prob);
+	    break;
+	  }
+	  case(4):{
+	    Cuhre(2, 1, _core_I_3_tot, &p, 1,
+	    epsrel, epsabs, verbose | last,
+	    0, 500000, 9,
+	    NULL, NULL,
+	    &nregions, &neval, &fail, the_integral, error, prob);
+	    break;
+	  }
+	}
 	std::cout << "I_3 integral (" << j << "," << k << "," << xp << ") = " << the_integral[0] << " ± " << error[0] << "\tp = " << prob[0] << std::endl;
 	std::cout << std::endl;
     return the_integral[0];

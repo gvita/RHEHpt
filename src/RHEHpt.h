@@ -18,7 +18,7 @@ class RHEHpt
     public:
     	LOBaur Exact_FO_ME;
         RHEHpt(double CME, const std::string& PDFname = "NNPDF_30_nnlo_as_118", double MH = 125.09,
-        	   double MT = 173.3, bool verbose = false);
+        	   double MT = 173.3, double MB=4.18, bool verbose = false);
 		double core_hpt_infinite(double N) const;
         double hpt_infinite(double pt,double N) const;
         double hpt_finite(double pt,double N) const;
@@ -102,7 +102,17 @@ class RHEHpt
 
 		inline  double get_yt() const{ return (_mT*_mT)/(_mH*_mH); }
 		inline  double get_alphas() const{ return _as; }
+		inline double get_yb() const{ return (_mB*_mB)/(_mH*_mH); }
 		void set_mt(double mt){ _mT = mt;}
+		void set_mb(double mb){ _mB = mb;}
+		void set_choice(int CHOICE){
+		  if ((CHOICE!=1)||(CHOICE!=2)||(CHOICE!=3)||(CHOICE!=4)){
+		    std::cout << "Error invalid choice; set a number from 1 to 4" << std::endl;  
+		  }
+		  else {
+		    choice = CHOICE;
+		  }
+		}
 
         virtual ~RHEHpt();
         
@@ -124,8 +134,10 @@ class RHEHpt
         double _s;  // hadronic mandelstam variable
         double _mH; // Higgs mass
         double _mT; // Top mass
+        double _mB; // Bottom mass
         double _as; // Current value of alphas, default is alphas(MH)
         bool _verbose;
+	unsigned int choice=4;
         std::shared_ptr<LHAPDF::PDF> _PDF;
     //    Luminosity _lumi;   // That provides luminosity functions
     //    std::unique_ptr<LHAPDF::PDFSet> _PDFset;
