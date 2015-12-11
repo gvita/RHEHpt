@@ -10,8 +10,10 @@ std::complex<long double> A2(long double x1, long double x2, long double y);
 std::complex<long double> A3(long double x1, long double x2, long double y);
 long double F_0(long double x1, long double x2, long double xp, long double y,long double r);
 long double F_Infinitive(long double x1, long double x2, long double xp, long double y);
-
-
+long double F_0_tot(long double x1, long double x2, long double xp,long double y,long double y2, long double r);
+long double F_0_inter(long double x1, long double x2, long double xp, long double y, long double y2, long double r);
+long double F_Infinitive_inter(long double x1,long double x2, long double xp, long double y, long double y2);
+long double F_Infinitive_tot(long double x1, long double x2, long double xp, long double y, long double y2);
 
 //First derivative wrt x1 of the Hard Part Functions
 std::complex<long double> D_C0(long double x1, long double x2, long double y);
@@ -20,6 +22,8 @@ std::complex<long double> D_A1(long double x1, long double x2, long double y);
 std::complex<long double> D_A2(long double x1, long double x2, long double y);
 std::complex<long double> D_A3(long double x1, long double x2, long double y);
 long double D_F_0(long double x1, long double x2, long double xp, long double y,long double r);
+long double D_F_0_inter(long double x1, long double x2, long double xp,long double y, long double y2, long double r);
+long double D_F_0_tot(long double x1, long double x2, long double xp, long double y, long  double y2, long double r);
 
 //Function for Mtop infinitive case
 

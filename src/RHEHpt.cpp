@@ -79,7 +79,7 @@ double RHEHpt::hpt_infinite(double xp,double N) const{
     return core_hpt_infinite(N)*xp_factor;
 }
 
-
+//FIXME Tre versioni diverse per anche interferenza e totale
 int _core_hptfinite(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
 	res[0] = 0.;
 	double * p = (double *) pars;
@@ -112,7 +112,7 @@ int _core_hptfinite(const int *ndim, const double x[], const int *ncomp, double 
     return 0;
 }
 
-
+//FIXME aggiungere massa bottom a private classe e cambiare F_costant
 double RHEHpt::hpt_finite(double xp, double N) const
 {
 	double M = _an_dim(_as/N);
@@ -128,7 +128,7 @@ double RHEHpt::hpt_finite(double xp, double N) const
 	NULL, NULL,
 	&nregions, &neval, &fail, the_integral, error, prob);
 
-	const double F_constant = 4608.*std::pow(M_PI*get_yt(),2.)*M_PI;
+	const double F_constant = 4608.*std::pow(M_PI,3.);
 	std::cout << "hpt_finite integral (" << xp << ") = " << the_integral[0] << " ± " << error[0] << "\tp = " << prob[0] << std::endl;
 	std::cout << std::endl;
 
@@ -158,7 +158,7 @@ double half_C(unsigned j, unsigned k,double xp,double yt){
 double RHEHpt::C(unsigned j, unsigned k,double xp) const
 {
 	const double yt = (_mT*_mT) / (_mH*_mH);
-	const double F_constant = 4608.*std::pow(M_PI*yt,2.)*M_PI;
+	const double F_constant = 4608.*std::pow(M_PI,3.);
 	if ( k*j != 0 ) {
     	if( j != k )
 			return F_constant * (half_C(j,k,xp,yt) + half_C(k,j,xp,yt));

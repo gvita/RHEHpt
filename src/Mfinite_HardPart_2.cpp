@@ -91,18 +91,13 @@ long double F_0(long double x1, long double x2, long double xp, long double y,lo
 {
   //definition of x2
   const long double sqrtx1 = std::sqrt(x1);
-//  long double x2=(1.+sqrtx1)*(1.+sqrtx1) - 4.*sqrtx1*r;
-  /*Overall Constant terms
-  const long double Gf=1.6637e-5;
-  const long double K_y= 9.*2.*y*y*pow(1.-(4.*y-1)*pow(atan(1./sqrt(4.*y-1.)),2),2); // should be put outside the integral
-  const long double K=2304.*M_PI*M_PI*M_PI*y*y/K_y;*/
   //Expression of F
   const std::complex<long double> A1_v=A1(xp*x1,xp*x2,y);
   const std::complex<long double> A3_v=A3(xp*x1,xp*x2,y);
   long double F_ris=(pow(1.+sqrtx1-2.*r,2)/(x2)*real(A1_v*std::conj(A1_v))+xp*xp*x1*x2*real(A3_v*std::conj(A3_v))
   -xp*sqrtx1*(1.+sqrtx1-2.*r)*real(std::conj(A1_v)*A3_v+std::conj(A3_v)*A1_v));
   //std::cout << F_ris << endl;
-  return F_ris;
+  return y*y*F_ris;
 }
 
 long double F_Infinitive(long double x1, long double x2, long double xp, long double y)
@@ -115,8 +110,63 @@ long double F_Infinitive(long double x1, long double x2, long double xp, long do
   const std::complex<long double> A1_v=A1(xp*x1,xp*x2,y);
   const std::complex<long double> A2_v=A2(xp*x1,xp*x2,y);
   long double F_ris=1./(xp*xp*x1*x2)*pow(abs((1.+xp)/2.*A1_v-A2_v),2);
+  return y*y*F_ris;
+}
+
+long double F_0_inter(long double x1, long double x2, long double xp, long double y, long double y2, long double r){
+  const long double sqrtx1 = std::sqrt(x1);
+  const std::complex<long double> A1_v_yt=A1(xp*x1,xp*x2,y);
+  const std::complex<long double> A3_v_yt=A3(xp*x1,xp*x2,y);
+  const std::complex<long double> A1_v_yb=A1(xp*x1,xp*x2,y2);
+  const std::complex<long double> A3_v_yb=A3(xp*x1,xp*x2,y2);
+  long double F_ris=(pow(1.+sqrtx1-2.*r,2)/x2*real(A1_v_yt*std::conj(A1_v_yb)+std::conj(A1_v_yt)*A1_v_yb)
+  +xp*xp*x1*x2*real(A3_v_yt*std::conj(A3_v_yb)+std::conj(A3_v_yt)*A3_v_yb)
+  -xp*sqrtx1*(1.+sqrtx1-2.*r)*real(std::conj(A1_v_yt)*A3_v_yb
+  +std::conj(A3_v_yb)*A1_v_yt+std::conj(A1_v_yb)*A3_v_yt+std::conj(A3_v_yt)*A1_v_yb));
+  return y*y2*F_ris;  
+}
+
+long double F_Infinitive_inter(long double x1, long double x2, long double xp, long double y, long double y2)
+{
+  const std::complex<long double> A1_v_yt=A1(xp*x1,xp*x2,y);
+  const std::complex<long double> A2_v_yt=A2(xp*x1,xp*x2,y);
+  const std::complex<long double> A1_v_yb=A1(xp*x1,xp*x2,y2);
+  const std::complex<long double> A2_v_yb=A2(xp*x1,xp*x2,y2);
+  long double F_ris=1./(xp*xp*x1*x2)*((1.+xp)*(1.+xp)/4.*real(A1_v_yt*std::conj(A1_v_yb)+A1_v_yb*std::conj(A1_v_yt))
+  +real(A2_v_yt*std::conj(A2_v_yb)+A2_v_yb*std::conj(A2_v_yt))
+  -(1.+xp)/2.*real(std::conj(A1_v_yt)*A2_v_yb+A1_v_yt*std::conj(A2_v_yb)+std::conj(A2_v_yt)*A1_v_yb+A2_v_yt*std::conj(A1_v_yb)));
+  return y*y2*F_ris;
+}
+
+long double F_0_tot(long double x1, long double x2, long double xp, long double y, long double y2,long double r){
+  const long double sqrtx1 = std::sqrt(x1);
+  const std::complex<long double> A1_v_yt=A1(xp*x1,xp*x2,y);
+  const std::complex<long double> A3_v_yt=A3(xp*x1,xp*x2,y);
+  const std::complex<long double> A1_v_yb=A1(xp*x1,xp*x2,y2);
+  const std::complex<long double> A3_v_yb=A3(xp*x1,xp*x2,y2);
+  
+  std::complex<long double> Amp=y*(-(1.+sqrtx1-2.*r)/sqrt(x2)*A1_v_yt+xp*sqrtx1*sqrt(x2)*A3_v_yt)
+  +y2*(-(1.+sqrtx1-2.*r)/sqrt(x2)*A1_v_yb+xp*sqrtx1*sqrt(x2)*A3_v_yb); 
+  
+  long double F_ris=real(Amp*std::conj(Amp));
   return F_ris;
 }
+
+long double F_Infinitive_tot(long double x1, long double x2, long double xp, long double y, long double y2){
+  const std::complex<long double> A1_v_yt=A1(xp*x1,xp*x2,y);
+  const std::complex<long double> A2_v_yt=A2(xp*x1,xp*x2,y);
+  const std::complex<long double> A1_v_yb=A1(xp*x1,xp*x2,y2);
+  const std::complex<long double> A2_v_yb=A2(xp*x1,xp*x2,y2);
+  
+  std::complex<long double> Amp=y*((1.+xp)/2.*A1_v_yt-A2_v_yt)+y2*((1.+xp)/2.*A1_v_yb-A2_v_yb);
+  
+  long double F_ris=1./(xp*xp*x1*x2)*real(Amp*std::conj(Amp));
+  return F_ris;
+}
+
+
+
+
 
 std::complex<long double> D_C0(long double x1, long double x2, long double y){
   long double epsilon=1e-20;
@@ -150,14 +200,6 @@ std::complex<long double> D_C0(long double x1, long double x2, long double y){
   
   std::complex<long double> D_ymi=(1.-ymi)/(x1*sqrt(rad_x1));
   std::complex<long double> D_ypi=-(1.-ypi)/(x1*sqrt(rad_x1));
-  
-  //First derivate of the complex part
-  /*std::complex<long double> D_C0_complex=-log_c(1.-zmi)/((1.-zmi*delta3p)*(1.-zmi*delta3m))*
-  ((1.-zmi*delta3p)+(1.-zmi*delta3m))*zmi/2.*D_delta3
-  -log_c(1.-zmi*delta3p)/(zmi*delta3p)*(zmi/2.*D_delta3)
-  -log_c(1.-zpi*delta3p)/(zpi*delta3p)*(zpi/2.*D_delta3)
-  -log_c(1.-zmi*delta3m)/(zmi*delta3m)*(zmi/2.*D_delta3)
-  -log_c(1.-zpi*delta3m)/(zpi*delta3m)*(zpi/2.*D_delta3);*/
   
   //Derivate of C0
   std::complex<long double> D_C0_ris=-1./D3*(1.+x1-x2)*C0(x1,x2,y)+1./(16.*M_PI*M_PI)*1./sqrt(D3)*
@@ -223,25 +265,20 @@ std::complex<long double> D_A3(long double x1, long double x2, long double y){
 }
 
 long double D_F_0(long double x1, long double x2, long double xp, long double y,long double r){
-//  std::cout << "ent D_F_0 with " << x1 << "\t" << r << "\t" << xp << "\t" << y << std::endl;
-  //Definition of x2
-//  long double x2=(1.+sqrtx1)*(1.+sqrt(x1))-4.*sqrt(x1)*r;
-//  if(x2 < 0.) std::cout << "x2 < 0 in D_F_0 at " << x1 << " " << r << std::endl;
-  //Overall Constant terms
   const long double sqrtx1 = std::sqrt(x1);
   const long double tiny=1e-6;
   //Compute one time function and derivatives
-  std::complex<long double> A1_v=A1(xp*x1,xp*x2,y);
-  std::complex<long double> A3_v=A3(xp*x1,xp*x2,y);
+  const std::complex<long double> A1_v=A1(xp*x1,xp*x2,y);
+  const std::complex<long double> A3_v=A3(xp*x1,xp*x2,y);
   //times xp to pass from derivates wrt xi to derivates wrt x1
-   std::complex<long double> D_A1_x1=xp*D_A1(xp*x1,xp*x2,y);
-   std::complex<long double> D_A1_x2=xp*D_A1(xp*x2,xp*x1,y);
-   std::complex<long double> D_A3_x1=xp*D_A3(xp*x1,xp*x2,y);
-   std::complex<long double> D_A3_x2=xp*D_A3(xp*x2,xp*x1,y);
+   const std::complex<long double> D_A1_x1=xp*D_A1(xp*x1,xp*x2,y);
+   const std::complex<long double> D_A1_x2=xp*D_A1(xp*x2,xp*x1,y);
+   const std::complex<long double> D_A3_x1=xp*D_A3(xp*x1,xp*x2,y);
+   const std::complex<long double> D_A3_x2=xp*D_A3(xp*x2,xp*x1,y);
    
    //Total derivates of A1 and A3
-   std::complex<long double> D_A1_v = D_A1_x1+D_A1_x2*(1.+sqrtx1-2.*r)/sqrtx1;
-   std::complex<long double> D_A3_v= D_A3_x1+D_A3_x2*(1.+sqrtx1-2.*r)/sqrtx1;
+   const std::complex<long double> D_A1_v = D_A1_x1+D_A1_x2*(1.+sqrtx1-2.*r)/sqrtx1;
+   const std::complex<long double> D_A3_v= D_A3_x1+D_A3_x2*(1.+sqrtx1-2.*r)/sqrtx1;
    
   //Derivate of F
   long double D_F_ris=0.0;
@@ -253,13 +290,91 @@ long double D_F_0(long double x1, long double x2, long double xp, long double y,
   +(0.5*(-xp*(1.+2.*sqrtx1-2.*r)/sqrtx1*real(std::conj(A1_v)*A3_v+std::conj(A3_v)*A1_v))-xp*sqrtx1*(1.+sqrtx1-2.*r)
   *real(std::conj(D_A1_v)*A3_v+std::conj(A1_v)*D_A3_v+std::conj(D_A3_v)*A1_v+std::conj(A3_v)*D_A1_v))
   : ((4.*(1.-r)*r*(1+sqrtx1-2.*r))/(sqrtx1*x2*x2)*real(A1_v*std::conj(A1_v)));
-
-//	std::cout << "ex D_F_0" << std::endl;
-  return D_F_ris;
+  return y*y*D_F_ris;
 }
 
-/*** addition **/
-std::complex<long double> A1x_0(long double x1,long double yt){//FIXME //Domanda? la forma di prima come l'ha trovata
+long double D_F_0_inter(long double x1, long double x2, long double xp, long double y, long double y2, long double r){
+  const long double sqrtx1 = std::sqrt(x1);
+  const long double tiny=1e-6;
+  
+  const std::complex<long double> A1_v_yt=A1(xp*x1,xp*x2,y);
+  const std::complex<long double> A3_v_yt=A3(xp*x1,xp*x2,y);
+  const std::complex<long double> A1_v_yb=A1(xp*x1,xp*x2,y2);
+  const std::complex<long double> A3_v_yb=A3(xp*x1,xp*x2,y2);
+  
+  const std::complex<long double> D_A1_x1_yt=xp*D_A1(xp*x1,xp*x2,y);
+  const std::complex<long double> D_A1_x2_yt=xp*D_A1(xp*x2,xp*x1,y);
+  const std::complex<long double> D_A3_x1_yt=xp*D_A3(xp*x1,xp*x2,y);
+  const std::complex<long double> D_A3_x2_yt=xp*D_A3(xp*x2,xp*x1,y);
+  
+  const std::complex<long double> D_A1_x1_yb=xp*D_A1(xp*x1,xp*x2,y2);
+  const std::complex<long double> D_A1_x2_yb=xp*D_A1(xp*x2,xp*x1,y2);
+  const std::complex<long double> D_A3_x1_yb=xp*D_A3(xp*x1,xp*x2,y2);
+  const std::complex<long double> D_A3_x2_yb=xp*D_A3(xp*x2,xp*x1,y2);
+  
+  const std::complex<long double> D_A1_v_yt = D_A1_x1_yt+D_A1_x2_yt*(1.+sqrtx1-2.*r)/sqrtx1;
+  const std::complex<long double> D_A3_v_yt= D_A3_x1_yt+D_A3_x2_yt*(1.+sqrtx1-2.*r)/sqrtx1;
+  const std::complex<long double> D_A1_v_yb = D_A1_x1_yb+D_A1_x2_yb*(1.+sqrtx1-2.*r)/sqrtx1;
+  const std::complex<long double> D_A3_v_yb= D_A3_x1_yb+D_A3_x2_yb*(1.+sqrtx1-2.*r)/sqrtx1;
+  
+  long double D_F_ris=0.0;
+  
+  D_F_ris=(x1*xp > tiny) ? ((4.*(1.-r)*r*(1+sqrtx1-2.*r))/(sqrtx1*x2*x2)*real(A1_v_yt*std::conj(A1_v_yb)+A1_v_yb*std::conj(A1_v_yt))
+  +pow(1.+sqrtx1-2.*r,2)/x2*real(D_A1_v_yt*std::conj(A1_v_yb)+A1_v_yt*std::conj(D_A1_v_yb)
+  +std::conj(D_A1_v_yt)*A1_v_yb+D_A1_v_yb*std::conj(A1_v_yt))
+  +xp*xp*x2*real(A3_v_yt*std::conj(A3_v_yb)+std::conj(A3_v_yt)*A3_v_yb)
+  +xp*xp*sqrtx1*(1.+sqrtx1-2.*r)*real(A3_v_yt*std::conj(A3_v_yb)+std::conj(A3_v_yt)*A3_v_yb)
+  +xp*xp*x1*x2*real(D_A3_v_yt*std::conj(A3_v_yb)+A3_v_yt*std::conj(D_A3_v_yb)+A3_v_yt*std::conj(D_A3_v_yb)+D_A3_v_yt*std::conj(A3_v_yb))
+  +0.5*(-xp*(1.+2.*sqrtx1-2.*r)/sqrtx1)*real(std::conj(A1_v_yt)*A3_v_yb
+  +std::conj(A3_v_yb)*A1_v_yt+std::conj(A1_v_yb)*A3_v_yt+std::conj(A3_v_yt)*A1_v_yb)
+  -xp*sqrtx1*(1.+sqrtx1-2.*r)*real(A1_v_yt*std::conj(D_A3_v_yb)
+  +D_A1_v_yt*std::conj(A3_v_yb)+std::conj(A1_v_yt)*D_A3_v_yb+std::conj(D_A1_v_yt)*A3_v_yb
+  +std::conj(A3_v_yt)*D_A1_v_yb+std::conj(D_A3_v_yt)*A1_v_yb+A3_v_yt*std::conj(D_A1_v_yb)
+  +D_A3_v_yt*std::conj(A1_v_yb)))
+  : ((4.*(1.-r)*r*(1+sqrtx1-2.*r))/(sqrtx1*x2*x2)*real(A1_v_yt*std::conj(A1_v_yb)+A1_v_yb*std::conj(A1_v_yt)));
+
+  return y*y2*D_F_ris; 
+}
+
+long double D_F_0_tot(long double x1, long double x2, long double xp, long double y, long double y2, long double r){
+  const long double sqrtx1 = std::sqrt(x1);
+  const long double tiny=1e-6;
+  
+  const std::complex<long double> A1_v_yt=A1(xp*x1,xp*x2,y);
+  const std::complex<long double> A3_v_yt=A3(xp*x1,xp*x2,y);
+  const std::complex<long double> A1_v_yb=A1(xp*x1,xp*x2,y2);
+  const std::complex<long double> A3_v_yb=A3(xp*x1,xp*x2,y2);
+  
+  const std::complex<long double> D_A1_x1_yt=xp*D_A1(xp*x1,xp*x2,y);
+  const std::complex<long double> D_A1_x2_yt=xp*D_A1(xp*x2,xp*x1,y);
+  const std::complex<long double> D_A3_x1_yt=xp*D_A3(xp*x1,xp*x2,y);
+  const std::complex<long double> D_A3_x2_yt=xp*D_A3(xp*x2,xp*x1,y);
+  
+  const std::complex<long double> D_A1_x1_yb=xp*D_A1(xp*x1,xp*x2,y2);
+  const std::complex<long double> D_A1_x2_yb=xp*D_A1(xp*x2,xp*x1,y2);
+  const std::complex<long double> D_A3_x1_yb=xp*D_A3(xp*x1,xp*x2,y2);
+  const std::complex<long double> D_A3_x2_yb=xp*D_A3(xp*x2,xp*x1,y2);
+  
+  const std::complex<long double> D_A1_v_yt = D_A1_x1_yt+D_A1_x2_yt*(1.+sqrtx1-2.*r)/sqrtx1;
+  const std::complex<long double> D_A3_v_yt= D_A3_x1_yt+D_A3_x2_yt*(1.+sqrtx1-2.*r)/sqrtx1;
+  const std::complex<long double> D_A1_v_yb = D_A1_x1_yb+D_A1_x2_yb*(1.+sqrtx1-2.*r)/sqrtx1;
+  const std::complex<long double> D_A3_v_yb= D_A3_x1_yb+D_A3_x2_yb*(1.+sqrtx1-2.*r)/sqrtx1;
+  
+  std::complex<long double> Amp= y*(-(1.+sqrtx1-2.*r)/sqrt(x2)*A1_v_yt+xp*sqrtx1*sqrt(x2)*A3_v_yt)
+  +y2*(-(1.+sqrtx1-2.*r)/sqrt(x2)*A1_v_yb+xp*sqrtx1*sqrt(x2)*A3_v_yb);
+  std::complex<long double> DAmp=y*(-(1.+sqrtx1-2.*r)/sqrt(x2)*D_A1_v_yt-2.*(1.-r)*r/sqrtx1/pow(sqrt(x2),3.)*A1_v_yt
+  +xp*sqrtx1*sqrt(x2)*D_A3_v_yt+xp*(1.+(3.-6.*r)*sqrtx1+2.*x1)/(2.*sqrtx1*sqrt(x2))*A3_v_yt)
+  +y2*(-(1.+sqrtx1-2.*r)/sqrt(x2)*D_A1_v_yb-2.*(1.-r)*r/sqrtx1/pow(sqrt(x2),3.)*A1_v_yb
+  +xp*sqrtx1*sqrt(x2)*D_A3_v_yb+xp*(1.+(3.-6.*r)*sqrtx1+2.*x1)/(2.*sqrtx1*sqrt(x2))*A3_v_yb);
+  
+  long double D_F_ris=0.0;
+  D_F_ris=real(Amp*std::conj(DAmp)+DAmp*std::conj(Amp));
+  return D_F_ris;
+  
+}
+
+
+std::complex<long double> A1x_0(long double x1,long double yt){
 	std::complex<long double> rad_y=static_cast<std::complex<long double> > (1.-4.*yt);
 	std::complex<long double> rad_x1=static_cast<std::complex<long double> > (1.+4.*yt/x1);
         const std::complex<long double> L1sq = std::pow(log_c((sqrt(rad_y)-1.)/(sqrt(rad_y)+1.)),2);
