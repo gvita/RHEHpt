@@ -18,7 +18,7 @@ class RHEHpt
     public:
     	LOBaur Exact_FO_ME;
         RHEHpt(double CME, const std::string& PDFname = "NNPDF30_nnlo_as_0118", double MH = 125.09,
-        	   double MT = 173.3, double MB=4.18, unsigned choice = 4, bool verbose = false);
+        	   double MT = 173.3, double MB = 4.18, unsigned choice = 1, bool verbose = false);
 		double core_hpt_infinite(double N) const;
         double hpt_infinite(double pt,double N) const;
         double hpt_finite(double pt,double N) const;
@@ -106,10 +106,8 @@ class RHEHpt
 		void set_mt(double mt){ _mT = mt;}
 		void set_mb(double mb){ _mB = mb;}
 		void set_choice(unsigned int CHOICE){
-		  if ((CHOICE!=1)||(CHOICE!=2)||(CHOICE!=3)||(CHOICE!=4)){
-//			if(CHOICE > 3 )
+		if(CHOICE > 3 )
 		    std::cout << "Error invalid choice; set a number from 0 to 3" << std::endl;  
-		  }
 		  else {
 		    _choice = CHOICE;
 		  }
@@ -124,11 +122,15 @@ class RHEHpt
             Exact_FO_ME.SetCME(Q);
         }
         
+        /* utility class _parameters. This has to be public because it has to be seen by the Cuba integrand. */
+   		#include "parameters.h"
+        
     private:
 		/* utility function */
     	std::vector< std::array<unsigned,2> > partition_of(unsigned n) const;
     	std::vector< std::array<unsigned,2> > symmetric_partition_of(unsigned n) const;
     	
+
         double R(double as_N) const;
 
         double _CME; // center of mass energy
@@ -140,6 +142,8 @@ class RHEHpt
         bool _verbose;
 		unsigned int _choice;
 		LHAPDF::PDF* _PDF;
+		std::function < long double(long double, long double, long double, long double , long double, long double)> F_0f;
+		std::function < long double(long double, long double, long double, long double , long double, long double)> D_0f;
 //        std::shared_ptr<LHAPDF::PDF> _PDF;
     //    Luminosity _lumi;   // That provides luminosity functions
 //		std::unique_ptr<LHAPDF::PDFSet> _PDFset;
