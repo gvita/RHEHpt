@@ -7,18 +7,17 @@
 namespace RHEHpt{
 
 
-RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB,bool verbose):Exact_FO_ME(CME,MT,MH),_CME(CME),_mH(MH),_mT(MT),_mB(MB),_verbose(verbose)
+RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB, unsigned choice,bool verbose):Exact_FO_ME(CME,MT,MH),_CME(CME),_mH(MH),_mT(MT),_mB(MB),_choice(choice),_verbose(verbose)
 {
     _s = std::pow(CME,2);   // GeV^2
-   // _PDF = std::make_shared<LHAPDF::PDF>(LHAPDF::mkPDF(PDFfile,0));  // create pdf choosing the reference replica from the set
-   // _as = _PDF -> alphasQ(_mH);
-    _as = 0.1;
-    std::cout << _s << " " << _as << " " << _mH << " " << _mT << " "<< _mB << std::endl; 
-    
+   _PDF = LHAPDF::mkPDF(PDFfile,0);  // create pdf choosing the reference replica from the set
+   _as = _PDF -> alphasQ(_mH);
+    std::cout << _s << " " << _as << " " << _mH << " " << _mT << " "<< _mB << std::endl;     
 }
 
 
 RHEHpt::~RHEHpt(){
+	delete _PDF;
 }
 
 
@@ -213,7 +212,7 @@ double RHEHpt::hpt_finite(double xp, double N) const
 	int last = 4;
 	int verbose = 0;
 	int nregions, neval, fail;
-	switch (choice){
+	switch (_choice){
 	  case(1):{
 	    Cuhre(2, 1, _core_hptfinite_top, &p, 1,
 	    epsrel, epsabs, verbose | last,
@@ -267,10 +266,10 @@ unsigned int factorial(unsigned int n)
   return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;
 }
 
-double I_1_2(unsigned j, unsigned k,double xp,double yt, double yb, int choice);
-double I_3(unsigned j, unsigned k,double xp,double yt, double yb, int choice);
-double half_C(unsigned j, unsigned k,double xp,double yt, double yb, int choice){
-	return (I_1_2(j,k,xp,yt,yb,choice) + I_3(j,k,xp,yt,yb,choice))/(factorial(j-1) * factorial(k));
+double I_1_2(unsigned j, unsigned k,double xp,double yt, double yb, unsigned _choice);
+double I_3(unsigned j, unsigned k,double xp,double yt, double yb, unsigned _choice);
+double half_C(unsigned j, unsigned k,double xp,double yt, double yb, unsigned _choice){
+	return (I_1_2(j,k,xp,yt,yb,_choice) + I_3(j,k,xp,yt,yb,_choice))/(factorial(j-1) * factorial(k));
 	
 }
 
@@ -281,12 +280,12 @@ double RHEHpt::C(unsigned j, unsigned k,double xp) const
 	const double F_constant = 4608.*std::pow(M_PI,3.);
 	if ( k*j != 0 ) {
     	if( j != k )
-			return F_constant * (half_C(j,k,xp,yt,yb,choice) + half_C(k,j,xp,yt,yb,choice));
+			return F_constant * (half_C(j,k,xp,yt,yb,_choice) + half_C(k,j,xp,yt,yb,_choice));
 		else
-			return 2. * F_constant * half_C(j,k,xp,yt,yb,choice);
+			return 2. * F_constant * half_C(j,k,xp,yt,yb,_choice);
 	}
 	else if ( k + j > 1.) return 0.;
-	else switch (choice){
+	else switch (_choice){
 	  case(1): {
 	    return M_PI * F_constant * std::norm(A1x_0(xp,yt)); // checked against c0 infinite
 	    break; 
@@ -586,14 +585,14 @@ int _core_I_1_2_tot(const int *ndim, const double x[], const int *ncomp, double 
 }
 
 //Inserted switch
-double I_1_2(unsigned j, unsigned k,double xp,double yt,double yb,int choice){
+double I_1_2(unsigned j, unsigned k,double xp,double yt,double yb, unsigned _choice){
 	double p[5] = { xp, yt,yb,static_cast<double>(j),static_cast<double>(k) };
 	double the_integral[1], error[1], prob[1];
 	double epsrel=1.e-3, epsabs=1.e-15;
 	int last = 4;
 	int verbose = 0;
 	int nregions, neval, fail;
-	switch (choice) {
+	switch (_choice) {
 	  case(1):{
 	    Cuhre(2, 1, _core_I_1_2_top, &p, 1,
 	    epsrel, epsabs, verbose | last,
@@ -697,14 +696,14 @@ int _core_I_3_tot(const int *ndim, const double x[], const int *ncomp, double re
 }
 
 //inserted switch
-double I_3(unsigned j, unsigned k,double xp,double yt, double yb, int choice){
+double I_3(unsigned j, unsigned k,double xp,double yt, double yb, unsigned _choice){
 	double p[5] = { xp, yt,static_cast<double>(j),static_cast<double>(k) };
 	double the_integral[1], error[1], prob[1];
 	double epsrel=1.e-3, epsabs=1.e-15;
 	int last = 4;
 	int verbose = 0;
 	int nregions, neval, fail;
-	switch(choice){
+	switch(_choice){
 	  case (1):{
 	    Cuhre(2, 1, _core_I_3_top, &p, 1,
 	    epsrel, epsabs, verbose | last,
