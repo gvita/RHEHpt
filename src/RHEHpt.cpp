@@ -186,7 +186,7 @@ double RHEHpt::C(unsigned j, unsigned k,double xp) const
 			break;
 		}
 		case(3): {
-			return M_PI * F_constant*real((A1x_0(xp,yt)+A1x_0(xp,yb))*std::conj(A1x_0(xp,yt)+A1x_0(xp,yb)));
+			return M_PI * F_constant*real(A1x_0(xp,yt)*std::conj(A1x_0(xp,yb))+std::conj(A1x_0(xp,yt))*A1x_0(xp,yb));
 			break;
 		}
 	}
@@ -337,11 +337,12 @@ int _core_I_1_2(const int *ndim, const double x[], const int *ncomp, double res[
 		F0red = F_0f(0.25, x2_red, xp, r);
 		
 		const long double C1 = (logjx2 / x2) * DF0 ;
+		//const long double C1=0.0;
 		long double C2 = logjx2 * F0* (1.+sqrtx1 - 2.*r)/(sqrtx1*x2*x2);
-
+		//long double C2=0.0;
 		if( j > 1 ) 
-			C2 -= (j-1.) * std::pow(std::log(xp),j-2) * F0* (1.+sqrtx1 - 2.*r)/(sqrtx1*x2*x2);
-
+			C2 -= (j-1.) * std::pow(std::log(x2),j-2) * F0* (1.+sqrtx1 - 2.*r)/(sqrtx1*x2*x2);
+		
 		// I_1 calculation
 
 		const long double I1_numerator = std::pow(std::log(0.25),k)*std::pow(std::log(x2_red),j-1)*F0red/x2_red;
@@ -350,6 +351,9 @@ int _core_I_1_2(const int *ndim, const double x[], const int *ncomp, double res[
 		
 		// 4*I1_numerator because I_1 is an integral on dr, here we are integrating in dr dx	
 		res[0] = (4. * I1_numerator -	(C1 - C2 )*std::pow(std::log(x1),k) )/std::sqrt(r*(1.-r));
+		/*if (res[0]!=res[0]){
+		  std::cout << res[0] << " YES " << x[0]<< " " << x[1] << " " << x2 << " " << x2_red<< " " << DF0<< std::endl;
+		}*/
 		
 	}
 	return 0;
