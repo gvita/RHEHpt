@@ -8,7 +8,7 @@ using namespace std::placeholders;
 
 namespace RHEHpt{
 
-RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB, unsigned choice,bool verbose):Exact_FO_ME(CME,MT,MH),_CME(CME),_mH(MH),_mT(MT),_mB(MB),_choice(choice),_verbose(verbose)
+RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB, unsigned choice,bool verbose):Exact_FO_ME(CME,MT,MB,MH,choice),_CME(CME),_mH(MH),_mT(MT),_mB(MB),_choice(choice),_verbose(verbose)
 {
 		_s = std::pow(CME,2);	 // GeV^2
 	 _PDF = LHAPDF::mkPDF(PDFfile,0);	// create pdf choosing the reference replica from the set
@@ -418,7 +418,9 @@ double RHEHpt::ptd_FO(double xp)
 {
 	const double MatrixElementFO = Exact_FO_ME(xp);
 	const double K = 1./(16.*M_PIl*256.) * Gf * sqrt(2.)*_as*_as*_as;
+	//const double sigma0= _as*_as*Gf*sqrt(2.)/(576.*M_PIl); //useful for check
 	return K *0.5 * 3./M_PIl * MatrixElementFO;
+	//return K/sigma0*0.5*3./M_PIl*MatrixElementFO/_as/3.*xp*M_PIl/2.;
 }
 
 }

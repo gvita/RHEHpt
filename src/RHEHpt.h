@@ -110,6 +110,7 @@ class RHEHpt
 		    std::cout << "Error invalid choice; set a number from 0 to 3" << std::endl;  
 		  else {
 		    _choice = CHOICE;
+		    Exact_FO_ME.setchoice(_choice);
 		  }
 		}
 
