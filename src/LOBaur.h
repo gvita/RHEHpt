@@ -8,12 +8,13 @@
 
 class LOBaur{
 	public:
-		LOBaur(double CME,double MT = 173.3, double MB=4.18, double MH = 125.09, unsigned int Choice=1):_CME(CME),_mT(MT),_mB(MB),_mH(MH),_choice(Choice){}
+		LOBaur(double CME,double MT = 173.3, double MB=4.18, double MH = 125.09, unsigned int Choice=1):_CME(CME),_mT(MT),_mB(MB),_mH(MH),_choice(Choice){
+			x = std::pow(_mH/_CME,2);
+			yt = std::pow(_mT/_mH,2);
+			yb = std::pow(_mB/_mH,2);
+		}
 		
 		void SetMandelstam(double xp){
-			x = pow(_mH/_CME,2);
-			yt = pow(_mT/_mH,2);
-			yb= pow(_mB/_mH,2);
 			t = 0.5*(-1.+x-sqrt((1.-x)*(1.-x)-4.*x*xp));
 			u = 0.5*(-1.+x+sqrt((1.-x)*(1.-x)-4.*x*xp));
 			s1 = 1.-x;
@@ -23,6 +24,7 @@ class LOBaur{
 		
 		void SetCME(double CME){
 			_CME = CME;
+			x = std::pow(_mH/_CME,2);
 		}
 		
 		long double MatrixElementFO(double xp);

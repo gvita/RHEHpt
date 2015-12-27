@@ -118,8 +118,9 @@ std::complex<long double> LOBaur::Appm(double y){
   return (Mppm*y*x);
 }
 
-
 long double LOBaur::MatrixElementFO(double xp){
+  if( xp > std::pow(1.-x,2.)/(4.*x) )  // process is kinematically forbidden
+    return 0.;
   SetMandelstam(xp);
   switch (_choice){
     case(0): {
@@ -147,18 +148,4 @@ long double LOBaur::MatrixElementFO(double xp){
       
     }
   }
-  
 }
-
-
-
-
-
-
-
-
-
-
-
-  
-  
