@@ -8,11 +8,14 @@ using namespace std::placeholders;
 
 namespace RHEHpt{
 
-RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB, unsigned choice,bool verbose):Exact_FO_ME(CME,MT,MB,MH,choice),_CME(CME),_mH(MH),_mT(MT),_mB(MB),_choice(choice),_verbose(verbose)
+RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB, unsigned choice,bool verbose):
+				Exact_FO_ME(CME,MT,MB,MH,choice), _CME(CME), _mH(MH), _mT(MT), _mB(MB), _choice(choice), _verbose(verbose),
+				_PDF(LHAPDF::mkPDF(PDFfile,0)), _ggLum(_PDF)
 {
-		_s = std::pow(CME,2);	 // GeV^2
-	 _PDF = LHAPDF::mkPDF(PDFfile,0);	// create pdf choosing the reference replica from the set
-	 _as = _PDF -> alphasQ(_mH);
+	_s = std::pow(CME,2);	 // GeV^2
+	_as = _PDF -> alphasQ(_mH);
+	_ggLum.Cheb_Lum( _mH );
+
 	std::cout << _s << " " << _as << " " << _mH << " " << _mT << " "<< _mB << std::endl;		 
 }
 

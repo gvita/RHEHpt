@@ -4,19 +4,22 @@
 #include <string>
 #include <memory>
 #include "LOBaur.h"
+#include "Luminosity.h"
 #include "LHAPDF/LHAPDF.h"
 
 namespace RHEHpt
 {
     constexpr long double Gf = 0.00001166364; // Fermi constant in GeV^-2
     constexpr long double gev2_to_pb = 389379304.; // GeV^-2 to pb conversion factor == (hc)^2 
-   	typedef const std::vector< double >& vector_ref;
-   	typedef const std::vector< std::complex< double > >& cvector_ref;
    	
 class RHEHpt
 {
     public:
-    	LOBaur Exact_FO_ME;
+	   	typedef const std::vector< double >& vector_ref;
+	   	typedef const std::vector< std::complex< double > >& cvector_ref;
+		typedef LHAPDF::PDF* PDF_ptr;
+		typedef std::function< std::complex<long double>(std::complex<long double>)> c_function;
+
         RHEHpt(double CME, const std::string& PDFname = "NNPDF30_nnlo_as_0118", double MH = 125.09,
         	   double MT = 173.3, double MB = 4.18, unsigned choice = 1, bool verbose = false);
 		double core_hpt_infinite(double N) const;
@@ -88,21 +91,36 @@ class RHEHpt
 		
 		template<class T> T pt_distr_series(const std::vector< T >& terms,unsigned order) const {
 			unsigned useful_number_of_terms = ( order*(order + 3) ) / 2 -1; // sum_{n=1}^order (n + 1)
-			std::cout << "useful_number_of_terms = " << useful_number_of_terms << std::endl;
-			for (int i = 0 ; i < useful_number_of_terms ; ++i){
-				std::cout << terms[i] << " " ;
+			if(_verbose){
+				std::cout << "useful_number_of_terms = " << useful_number_of_terms << std::endl;
+				for (int i = 0 ; i < useful_number_of_terms ; ++i){
+					std::cout << terms[i] << " " ;
+				}
+				std::cout << std::endl;	
 			}
-			std::cout << std::endl;	
 			const double sigma0 = _as * _as * Gf * std::sqrt(2.) / (576. * M_PI);
-			return sigma0 * std::accumulate(terms.cbegin(),terms.cbegin() + useful_number_of_terms,0.);
+			T zero = static_cast<T> (0.);
+			return sigma0 * std::accumulate(terms.cbegin(),terms.cbegin() + useful_number_of_terms,zero);
 		}
 
 
 		double pt_distr_series(unsigned order, double xp, double N, bool heavy_quark = false) const;
 
-		inline  double get_yt() const{ return (_mT*_mT)/(_mH*_mH); }
-		inline  double get_alphas() const{ return _as; }
+		inline double get_yt() const{ return (_mT*_mT)/(_mH*_mH); }
 		inline double get_yb() const{ return (_mB*_mB)/(_mH*_mH); }
+		inline double get_alphas() const{ return _as; }
+		inline PDF_ptr get_PDF() const { return _PDF; }
+		inline double get_scale() const{ return _CME; }
+		inline double get_mH() const{ return _mH; }
+		inline double get_x() const{ return std::pow(_mH/_CME,2.); }
+		inline double get_xp(double pt) const { return std::pow(pt/_mH,2.);}
+
+
+		void set_mh(double mh){
+			_mH = mh;
+			_as = _PDF -> alphasQ(_mH);
+			_ggLum.Cheb_Lum( _mH );
+		}		
 		void set_mt(double mt){ _mT = mt;}
 		void set_mb(double mb){ _mB = mb;}
 		void set_choice(unsigned int CHOICE){
@@ -119,9 +137,14 @@ class RHEHpt
         void set_scale(double Q){
             _CME = Q;
             _s = Q*Q;
-            //_as = alphas(Q);
-            Exact_FO_ME.SetCME(Q);
+           Exact_FO_ME.SetCME(Q);
         }
+        
+        std::complex<long double> Lum_gg_N(std::complex<long double> N){
+        	return _ggLum.CLum_gg_N(N);
+        }
+
+    	LOBaur Exact_FO_ME;
         
         /* utility class _parameters. This has to be public because it has to be seen by the Cuba integrand. */
    		#include "parameters.h"
@@ -130,7 +153,6 @@ class RHEHpt
 		/* utility function */
     	std::vector< std::array<unsigned,2> > partition_of(unsigned n) const;
     	std::vector< std::array<unsigned,2> > symmetric_partition_of(unsigned n) const;
-    	
 
         double R(double as_N) const;
 
@@ -149,6 +171,9 @@ class RHEHpt
     //    Luminosity _lumi;   // That provides luminosity functions
 //		std::unique_ptr<LHAPDF::PDFSet> _PDFset;
     //    std::vector< std::unique_ptr< LHAPDF::PDFSet > > _PDFmembers;
+        	
+		Luminosity _ggLum;
+
 };
 
 
