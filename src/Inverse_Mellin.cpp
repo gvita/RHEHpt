@@ -3,7 +3,7 @@
 #include "complex_def.h"
 #include "Inverse_Mellin.h"
 
-long double InverseMellin(double z, std::function<  std::complex<long double>(std::complex<long double>)> f)
+long double InverseMellin(double z, std::function<  std::complex<long double>(std::complex<long double>)>& f)
 { // Talbot algorithm for a function f : C -> C
   if ( z == 1. ) return 0.;
   long double log1ox = -std::log(z);
@@ -15,21 +15,24 @@ long double InverseMellin(double z, std::function<  std::complex<long double>(st
   long double t, cott, sigma;
   std::complex<long double> N;
   std::complex<long double> I(0,1);
-  long double res = std::real(0.5 * integrand * exp( r*log1ox )) ;
+//  long double res = std::real(0.5 * integrand * exp( r*log1ox ))*r/M ;
+  long double res = std::real(0.5 * integrand )*r/M ;
+//  std::cout << res << " " << N << " " << log1ox << " " << integrand << " " << r << " " << M << std::endl;
 
-  for(unsigned k = 1; k < M; k++) {
-    t = k*M_PI/M;
+  for(unsigned k = 1; k < M; ++k) {
+    t = k*M_PIl/M;
     cott = 1./std::tan(t);
     sigma = t + cott * ( t * cott - 1. );
     N = r * t * ( cott + I );
   	integrand =  f(N);
-    res += std::real( exp( N*log1ox ) * integrand * (1.+I*sigma) );
+//    std::cout << res << " " << N << " " << log1ox << " " << integrand << " " << r/M << std::endl;
+    res += std::real( std::exp( log1ox*(N-r) ) * integrand * (1.+I*sigma) )*r/M;
   }
-  return res*r/M;
+  return res* std::exp( r*log1ox );
 }
 
 
-std::vector<long double> InverseMellin(double z, std::function< std::vector< std::complex<long double> >(std::complex<long double>)> f)
+std::vector<long double> InverseMellin(double z, std::function< std::vector< std::complex<long double> >(std::complex<long double>)>& f)
 { // Talbot algorithm for a function f : C -> C^size
   long double log1ox = -std::log(z);
   // prec ~ 10^{-0.6*M}
@@ -49,7 +52,7 @@ std::vector<long double> InverseMellin(double z, std::function< std::vector< std
   	res.push_back( std::real(0.5 * f_r * std::exp( r*log1ox ))*r/M );
 
   for(unsigned k = 1; k < M; k++) {
-    t = k*M_PI/M;
+    t = k*M_PIl/M;
     cott = 1./std::tan(t);
     sigma = t + cott * ( t * cott - 1. );
     N = r * t * ( cott + I );
