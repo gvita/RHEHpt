@@ -8,15 +8,16 @@ using namespace std::placeholders;
 
 namespace RHEHpt{
 
-RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB, unsigned choice,bool verbose):
-				Exact_FO_ME(CME,MT,MB,MH,choice), _CME(CME), _mH(MH), _mT(MT), _mB(MB), _choice(choice), _verbose(verbose),
-				_PDF(LHAPDF::mkPDF(PDFfile,0)), _ggLum(_PDF)
+RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB, double MUR, double MUF, unsigned choice,bool verbose):_PDF(LHAPDF::mkPDF(PDFfile,0)),
+				Exact_FO_fullmass(CME,0.1,MT,MB,MH,choice),Exact_FO_PL(CME,0.1,MH,MUF,MUR), _CME(CME), _mH(MH), _mT(MT), _mB(MB), _muR(MUR), _muF(MUF), _choice(choice), _verbose(verbose), _Lum(_PDF)
 {
 	_s = std::pow(CME,2);	 // GeV^2
-	_as = _PDF -> alphasQ(_mH);
-	_ggLum.Cheb_Lum( _mH );
+	_as=_PDF -> alphasQ(_muR);
+	_Lum.Cheb_Lum( _muF );
+	Exact_FO_fullmass.SetAS(_as);
+	Exact_FO_PL.SetAS(_as);
 
-	std::cout << _s << " " << _as << " " << _mH << " " << _mT << " "<< _mB << std::endl;		 
+	std::cout << _s << " " << _as << " " << _mH << " " << _mT << " "<< _mB << " " << _muR << " " << _muF << std::endl;		 
 }
 
 
@@ -417,13 +418,178 @@ double I_3(RHEHpt::_parameters* par){
 /*		FIXED ORDER DISTRIBUTION			*/
 /******************************************/
 
-double RHEHpt::ptd_FO(double xp)
-{
-	const double MatrixElementFO = Exact_FO_ME(xp);
-	const double K = 1./(16.*M_PIl*256.) * Gf * sqrt(2.)*_as*_as*_as;
-	//const double sigma0= _as*_as*Gf*sqrt(2.)/(576.*M_PIl); //useful for check
-	return K *0.5 * 3./M_PIl * MatrixElementFO;
-	//return K/sigma0*0.5*3./M_PIl*MatrixElementFO/_as/3.*xp*M_PIl/2.;
+//CORE FUNCTION
+
+double NLO_PL_sing_function(double x1,void *p){
+  RHEHpt::_par_part *pars=(RHEHpt::_par_part *)p;
+  return((pars->_Pointlike_int).NLO_PL_sing_doublediff(pars->_xp_int,x1));
+}
+double NLO_PL_notsing_function(double x1,void *p){
+  RHEHpt::_par_part *pars=(RHEHpt::_par_part *)p;
+  return((pars->_Pointlike_int).NLO_PL_notsing_doublediff(pars->_xp_int,x1));
+}
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+long double RHEHpt::sigma_part(long double CME_part,long double pt, unsigned int order, unsigned int choice, bool heavyquark){
+  long double sigma=0.0;
+  long double sigma0=_as*_as*std::sqrt(2)*Gf/(576.*M_PIl);
+  if (heavyquark==false){
+    Exact_FO_fullmass.SetCME(CME_part);
+    Exact_FO_fullmass.setchoice(choice);
+    sigma=sigma0*Exact_FO_fullmass(get_xp(pt));
+  }
+  else {
+    if (order>1){
+      std::cout << "Error order must be or 0 (LO) or 1(NLO)" << std::endl;
+      return 0;
+    }
+    if (order==0){
+      Exact_FO_PL.SetCME(CME_part);
+      sigma=sigma0*Exact_FO_PL.LO_PL(get_xp(pt));
+    }
+    if(order==1){
+      Exact_FO_PL.SetCME(_CME);
+      _par_part par(Exact_FO_PL,get_xp(pt));
+      double precision = 1e-6;
+      double NLO_PL_sing_ris = 0.0, NLO_PL_sing_error = 0.0;
+      gsl_function NLO_PL_sing;
+      gsl_integration_workspace * w = gsl_integration_workspace_alloc (100000);
+      NLO_PL_sing.function = NLO_PL_sing_function;
+      NLO_PL_sing.params = &par;
+      gsl_integration_qags (&NLO_PL_sing, 0.0, 1.0, 0, precision, 100000,	w, &NLO_PL_sing_ris, &NLO_PL_sing_error);
+      gsl_integration_workspace_free (w);
+      double NLO_PL_notsing_ris = 0.0, NLO_PL_notsing_error = 0.0;
+      gsl_function NLO_PL_notsing;
+      w = gsl_integration_workspace_alloc (100000);
+      NLO_PL_notsing.function = NLO_PL_notsing_function;
+      NLO_PL_notsing.params = &par;
+      gsl_integration_qags (&NLO_PL_notsing, 0.0, 1.0, 0, precision, 100000, w, &NLO_PL_notsing_ris, &NLO_PL_notsing_error);
+      gsl_integration_workspace_free (w);
+      long double NLO_PL_delta_ris= Exact_FO_PL.NLO_PL_delta(get_xp(pt));
+      
+      sigma=sigma0*(_as*_as/(4.*M_PIl*M_PIl)*(NLO_PL_delta_ris));
+      std::cout << "Sigma_part_NLO( "<< CME_part << " , " << pt << ")= " << sigma << " +- " << sigma0*(_as*_as/(4.*M_PIl*M_PIl)*(0.))<< std::endl;
+     }
+  }
+  return sigma;
+}
+
+
+double LO_fullmass_function(double z,void *p){
+  RHEHpt::_par_hadro *pars=(RHEHpt::_par_hadro *)p;
+  long double tauprime=(pars->_tau_int)*std::pow(std::sqrt(1.+pars->_xp_int)+std::sqrt(pars->_xp_int),2);
+  pars->_Finite_int.SetCME(pars->_mH_int/std::sqrt(z)*(std::sqrt(1.+pars->_xp_int)+std::sqrt(pars->_xp_int)));
+  return (1./z*pars->_Lumi_int.CLum_gg_x(tauprime/z)*pars->_Finite_int(pars->_xp_int)/z);
+}
+double LO_PL_function(double z,void *p){
+  RHEHpt::_par_hadro *pars=(RHEHpt::_par_hadro *)p;
+  long double tauprime=(pars->_tau_int)*std::pow(std::sqrt(1.+pars->_xp_int)+std::sqrt(pars->_xp_int),2);
+  pars->_Pointlike_int.SetCME(pars->_mH_int/std::sqrt(z)*(std::sqrt(1.+pars->_xp_int)+std::sqrt(pars->_xp_int)));
+  return (1./z*pars->_Lumi_int.CLum_gg_x(tauprime/z)*pars->_Pointlike_int.LO_PL(pars->_xp_int)/z);
+}
+int _core_NLO_PL_notsing(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
+  res[0] = 0.;
+  RHEHpt::_par_hadro *p=(RHEHpt::_par_hadro *) pars;
+  long double tauprime=(p->_tau_int)*std::pow(std::sqrt(1.+p->_xp_int)+std::sqrt(p->_xp_int),2);
+  
+  //Setting integration limit
+  long double z=tauprime+(1.-tauprime)*x[0];
+  p->_Pointlike_int.SetCME(p->_mH_int/std::sqrt(z)*(std::sqrt(1.+p->_xp_int)+std::sqrt(p->_xp_int)));
+  res[0]+=(1./z*p->_Lumi_int.CLum_gg_x(tauprime/z)*p->_Pointlike_int.NLO_PL_notsing_doublediff(p->_xp_int,x[1]));
+  return 0;
+}
+int _core_NLO_PL_sing(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
+  res[0] = 0.;
+  RHEHpt::_par_hadro *p=(RHEHpt::_par_hadro *) pars;
+  long double tauprime=(p->_tau_int)*std::pow(std::sqrt(1.+p->_xp_int)+std::sqrt(p->_xp_int),2);
+  
+  //Setting integration limit
+  long double z=tauprime+(1.-tauprime)*x[0];
+  p->_Pointlike_int.SetCME(p->_mH_int/std::sqrt(z)*(std::sqrt(1.+p->_xp_int)+std::sqrt(p->_xp_int)));
+  res[0]+=(1./z*p->_Lumi_int.CLum_gg_x(tauprime/z)*p->_Pointlike_int.NLO_PL_sing_doublediff(p->_xp_int,x[1]));
+  return 0;
+}
+double NLO_delta_function(double z,void *p){
+  RHEHpt::_par_hadro *pars=(RHEHpt::_par_hadro *)p;
+  long double tauprime=(pars->_tau_int)*std::pow(std::sqrt(1.+pars->_xp_int)+std::sqrt(pars->_xp_int),2);
+  pars->_Pointlike_int.SetCME(pars->_mH_int/std::sqrt(z)*(std::sqrt(1.+pars->_xp_int)+std::sqrt(pars->_xp_int)));
+  return (1./z*pars->_Lumi_int.CLum_gg_x(tauprime/z)*pars->_Pointlike_int.NLO_PL_delta(pars->_xp_int)/z);
+}
+
+
+
+long double RHEHpt::sigma_hadro(long double pt, unsigned int order, unsigned int choice, bool heavyquark){
+ long double sigma=0.0;
+ if (heavyquark==false){
+   Exact_FO_fullmass.setchoice(choice);
+   _par_hadro par(_Lum,Exact_FO_fullmass,Exact_FO_PL, get_xp(pt),get_tau(),_mH);
+   long double tauprime=(get_tau())*std::pow(std::sqrt(1.+get_xp(pt))+std::sqrt(get_xp(pt)),2);
+   double precision = 1e-6;
+   double LO_fullmass_ris = 0.0, LO_fullmass_error = 0.0;
+   gsl_function LO_fullmass;
+   gsl_integration_workspace * w = gsl_integration_workspace_alloc (100000);
+   LO_fullmass.function = LO_fullmass_function;
+   LO_fullmass.params = &par;
+   gsl_integration_qags (&LO_fullmass, tauprime, 1.0, 0, precision, 100000,	w, &LO_fullmass_ris, &LO_fullmass_error);
+   gsl_integration_workspace_free (w);
+   sigma=LO_fullmass_ris*tauprime*gev2_to_pb;
+   std::cout << "Sigma_hadro_LO_fullmass( "<< _CME << " , " << pt << ")= " << sigma << " +- " << LO_fullmass_error*tauprime*gev2_to_pb << std::endl;
+ }
+ else {
+   if (order > 1){
+     std::cout << "Error order must be or 0 (LO) or 1(NLO)" << std::endl;
+      return 0;
+   }
+   if (order==0){
+  _par_hadro par(_Lum,Exact_FO_fullmass,Exact_FO_PL, get_xp(pt),get_tau(),_mH);
+   long double tauprime=(get_tau())*std::pow(std::sqrt(1.+get_xp(pt))+std::sqrt(get_xp(pt)),2);
+   double precision = 1e-6;
+   double LO_PL_ris = 0.0, LO_PL_error = 0.0;
+   gsl_function LO_PL;
+   gsl_integration_workspace * w = gsl_integration_workspace_alloc (100000);
+   LO_PL.function = LO_PL_function;
+   LO_PL.params = &par;
+   gsl_integration_qags (&LO_PL, tauprime, 1.0, 0, precision, 100000,	w, &LO_PL_ris, &LO_PL_error);
+   gsl_integration_workspace_free (w);
+   sigma=LO_PL_ris*tauprime*gev2_to_pb;
+   std::cout << "Sigma_hadro_LO_pointlike( "<< _CME << " , " << pt << ")= " << sigma << " +- " << LO_PL_error*tauprime*gev2_to_pb << std::endl;
+   }
+   if (order==1){
+     _par_hadro par(_Lum,Exact_FO_fullmass,Exact_FO_PL, get_xp(pt),get_tau(),_mH);
+     long double tauprime=(get_tau())*std::pow(std::sqrt(1.+get_xp(pt))+std::sqrt(get_xp(pt)),2);
+     double NLO_hadro_notsing_ris[1], NLO_hadro_notsing_error[1], NLO_hadro_notsing_prob[1];
+     double epsrel=1.e-6, epsabs=1.e-15;
+     int last = 4;
+     int verbose = 0;
+     int nregions, neval, fail;
+     Cuhre(2, 1, _core_NLO_PL_notsing, &par, 1,
+	epsrel, epsabs, verbose | last,
+	0, 500000, 9,
+	NULL, NULL,
+	&nregions, &neval, &fail, NLO_hadro_notsing_ris, NLO_hadro_notsing_error, NLO_hadro_notsing_prob);
+     double NLO_hadro_sing_ris[1], NLO_hadro_sing_error[1], NLO_hadro_sing_prob[1];
+     Cuhre(2, 1, _core_NLO_PL_sing, &par, 1,
+	epsrel, epsabs, verbose | last,
+	0, 500000, 9,
+	NULL, NULL,
+	&nregions, &neval, &fail, NLO_hadro_sing_ris, NLO_hadro_sing_error, NLO_hadro_sing_prob);
+     double NLO_hadro_delta_ris = 0.0, NLO_hadro_delta_error = 0.0;
+     gsl_function NLO_delta;
+     gsl_integration_workspace * w = gsl_integration_workspace_alloc (100000);
+     NLO_delta.function = NLO_delta_function;
+     NLO_delta.params = &par;
+     gsl_integration_qags (&NLO_delta, tauprime, 1.0, 0, epsrel, 100000,	w, &NLO_hadro_delta_ris, &NLO_hadro_delta_error);
+     gsl_integration_workspace_free (w);
+     long double sigma0=_as*_as*std::sqrt(2)*Gf/(576.*M_PIl);
+     sigma=sigma0*(_as*_as/(4.*M_PIl*M_PIl)*(NLO_hadro_delta_ris+NLO_hadro_notsing_ris[0]+NLO_hadro_sing_ris[0]))*tauprime*gev2_to_pb;
+     std::cout << "Sigma_hadro_NLO_pointlike( "<< _CME << " , " << pt << ")= " << sigma << " +- " << sigma0*(_as*_as/(4.*M_PIl*M_PIl)*(NLO_hadro_delta_error+NLO_hadro_notsing_error[0]+NLO_hadro_sing_error[0]))*tauprime*gev2_to_pb << std::endl;
+     
+   }
+ }
+ return sigma;
 }
 
 }

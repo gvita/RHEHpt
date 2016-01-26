@@ -149,3 +149,10 @@ long double LOBaur::MatrixElementFO(double xp){
     }
   }
 }
+long double LOBaur::sigmapartLO(double xp)
+{
+  const long double Gf = 0.00001166364;
+  const double K = 9./(16.*4.)*_as;
+  return (K *0.5 * 3./M_PIl * MatrixElementFO(xp));
+}
+

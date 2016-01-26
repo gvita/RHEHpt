@@ -19,21 +19,47 @@ class Luminosity {
 		typedef std::complex<long double> dcomplex;
 		typedef LHAPDF::PDF* PDF_ptr;
 	
-		Luminosity(PDF_ptr thePDF, std::size_t order=20);
+		Luminosity(PDF_ptr thePDF, double MUF=125.09, double MUR=125.09, std::size_t order=20);
+		Luminosity(const Luminosity& Lumi);
 		virtual ~Luminosity();
 	
+		
+		
+		
 		void Cheb_Lum(double );
 		void c_large();
 
 		dcomplex CLum_N(dcomplex N, unsigned channel) const;
+		long double CLum_x(long double z, unsigned channel) const;
 
-		dcomplex CLum_gg_N(dcomplex N) const {	return CLum_N(N,0);	}	
-		dcomplex CLum_gq_N(dcomplex N) const {	return CLum_N(N,0);	}
-		dcomplex CLum_qbarq_N(dcomplex N) const {	return CLum_N(N,0);	}
-		dcomplex CLum_qq_N(dcomplex N) const {	return CLum_N(N,0);	}
-		dcomplex CLum_qqprime_N(dcomplex N) const {	return CLum_N(N,0);	}
-		dcomplex CLum_qqbarprime_N(dcomplex N) const {	return CLum_N(N,0);	}
+		dcomplex CLum_gg_N(dcomplex N) const {	return CLum_N(N,0);	}
+		long double CLum_gg_x(long double z) const { return CLum_x(z,0);  }
+		//dcomplex CLum_gq_N(dcomplex N) const {	return CLum_N(N,0);	}
+		//dcomplex CLum_qbarq_N(dcomplex N) const {	return CLum_N(N,0);	}
+		//dcomplex CLum_qq_N(dcomplex N) const {	return CLum_N(N,0);	}
+		//dcomplex CLum_qqprime_N(dcomplex N) const {	return CLum_N(N,0);	}
+		//dcomplex CLum_qqbarprime_N(dcomplex N) const {	return CLum_N(N,0);	}
 
+		double xfxQ(int channel, double x){
+		  return (_PDF->xfxQ(channel,x,_Muf)/x);
+		}
+		double get_alphas(){
+		  return(_PDF->alphasQ(_Mur));
+		}
+		
+		inline PDF_ptr get_PDF(){
+		  return _PDF;
+		}
+		inline double get_muf(){
+		  return _Muf;
+		}
+		inline double get_mur(){
+		  return _Mur;
+		}
+		inline size_t get_n(){
+		  return _n;
+		}
+		
 		struct par_struct{
 			double Muf;
 			PDF_ptr PDF;
@@ -53,6 +79,7 @@ class Luminosity {
 //		static double _Lum_gg(double tau);
 		
 		double _Muf;
+		double _Mur;
 	//	gsl_cheb_series *Chebgg;
 	//	gsl_cheb_series *Chebqq;
 	//	gsl_cheb_series *Chebgq;

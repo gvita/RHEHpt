@@ -1,10 +1,13 @@
 #ifndef __RHEHpt_H__
 #define __RHEHpt_H__
+
+
 #include <cmath>
 #include <string>
 #include <memory>
 #include "LOBaur.h"
 #include "Luminosity.h"
+#include "NLO_PL.h"
 #include "LHAPDF/LHAPDF.h"
 
 namespace RHEHpt
@@ -21,11 +24,12 @@ class RHEHpt
 		typedef std::function< std::complex<long double>(std::complex<long double>)> c_function;
 
         RHEHpt(double CME, const std::string& PDFname = "NNPDF30_nnlo_as_0118", double MH = 125.09,
-        	   double MT = 173.3, double MB = 4.18, unsigned choice = 1, bool verbose = false);
+        	   double MT = 173.3, double MB = 4.18, double MUR=125.09, double MUF=125.09, unsigned choice = 1, bool verbose = false);
 		double core_hpt_infinite(double N) const;
         double hpt_infinite(double pt,double N) const;
         double hpt_finite(double pt,double N) const;
-        double ptd_FO(double pt);
+	
+	
         double C(unsigned i,unsigned j,double pt) const; // coefficient of the series expansion of the resummed result
 
 		std::vector< double > Integral_coeffs(unsigned order,double xp,bool heavy_quark = false) const;
@@ -114,40 +118,58 @@ class RHEHpt
 		inline double get_mH() const{ return _mH; }
 		inline double get_x() const{ return std::pow(_mH/_CME,2.); }
 		inline double get_xp(double pt) const { return std::pow(pt/_mH,2.);}
+		inline double get_tau() const{return std::pow(_mH/_CME,2.); }
 
 
 		void set_mh(double mh){
 			_mH = mh;
-			_as = _PDF -> alphasQ(_mH);
-			_ggLum.Cheb_Lum( _mH );
 		}		
 		void set_mt(double mt){ _mT = mt;}
 		void set_mb(double mb){ _mB = mb;}
+		void set_mur(double mur){ 
+		  _muR=mur;
+		  _as=_PDF->alphasQ(mur);
+		  Exact_FO_fullmass.SetAS(_as);
+		  Exact_FO_PL.SetAS(_as);
+		}
+		void set_muf(double muf){
+		  _muF=muf;
+		  _Lum.Cheb_Lum(muf);
+		}
 		void set_choice(unsigned int CHOICE){
 		if(CHOICE > 3 )
 		    std::cout << "Error invalid choice; set a number from 0 to 3" << std::endl;  
 		  else {
 		    _choice = CHOICE;
-		    Exact_FO_ME.setchoice(_choice);
+		    Exact_FO_fullmass.setchoice(_choice);
 		  }
 		}
 
         virtual ~RHEHpt();
         
-        void set_scale(double Q){
+        void set_CME_collider(double Q){
             _CME = Q;
             _s = Q*Q;
-           Exact_FO_ME.SetCME(Q);
         }
         
         std::complex<long double> Lum_gg_N(std::complex<long double> N){
-        	return _ggLum.CLum_gg_N(N);
+        	return _Lum.CLum_gg_N(N);
         }
+        long double Lum_gg_x(long double x){
+	  return _Lum.CLum_gg_x(x);
+	}
 
-    	LOBaur Exact_FO_ME;
+    	LOBaur Exact_FO_fullmass;
+	NLOPL  Exact_FO_PL;
         
         /* utility class _parameters. This has to be public because it has to be seen by the Cuba integrand. */
    		#include "parameters.h"
+        
+        //Fixed Order part
+        
+        long double sigma_part(long double CME_part, long double pt, unsigned int order=0, unsigned int choice=0, bool heavyquark=true);
+	long double sigma_hadro(long double pt, unsigned int order=0, unsigned int choice=0, bool heavyquark=true);
+        
         
     private:
 		/* utility function */
@@ -156,23 +178,26 @@ class RHEHpt
 
         double R(double as_N) const;
 
-        double _CME; // center of mass energy
+        double _CME; // center of mass energy of the collider
         double _s;  // hadronic mandelstam variable
         double _mH; // Higgs mass
         double _mT; // Top mass
         double _mB; // Bottom mass
         double _as; // Current value of alphas, default is alphas(MH)
+        double _muR;
+	double _muF;
         bool _verbose;
-		unsigned int _choice;
-		LHAPDF::PDF* _PDF;
-		std::function < long double(long double, long double, long double, long double , long double, long double)> F_0f;
-		std::function < long double(long double, long double, long double, long double , long double, long double)> D_0f;
+	unsigned int _choice;
+	LHAPDF::PDF* _PDF;
+	std::function < long double(long double, long double, long double, long double , long double, long double)> F_0f;
+	std::function < long double(long double, long double, long double, long double , long double, long double)> D_0f;
+	Luminosity _Lum;
 //        std::shared_ptr<LHAPDF::PDF> _PDF;
     //    Luminosity _lumi;   // That provides luminosity functions
 //		std::unique_ptr<LHAPDF::PDFSet> _PDFset;
     //    std::vector< std::unique_ptr< LHAPDF::PDFSet > > _PDFmembers;
         	
-		Luminosity _ggLum;
+
 
 };
 
