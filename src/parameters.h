@@ -10,15 +10,12 @@ class _parameters{
 		_parameters(){};
 		
 		void set(unsigned J,unsigned K,long double XP, HardF1 F_0F, HardF1 D_0F, HardF2 F_INF){
-//			std::cout << "Setting _parameters" << std::endl;
 			j = J;
 			k = K;
 			xp = XP;
 			F_0f = F_0F;
 			D_0f = D_0F;
 			F_inf = F_INF;
-//			std::cout << "_parameters settedmuF(MUF),_muR(MUR),_mT(MT),_mB(MB),_CME_Hadro(CME),_pt(PT,u" << std::endl;
-//			std::cout << "test:" << F_0f(1,1,1,muF(MUF),_muR(MUR),_mT(MT),_mB(MB),_CME_Hadro(CME),_pt(PTmuF(MUF),_muR(MUR),_mT(MT),_mB(MB),_CME_Hadro(CME),_pt(PT1) << std::endl;
 		}
 		
 		void switch_jk(){
@@ -44,13 +41,24 @@ public:
 };
 
 class _par_hadro{
-public:
-  _par_hadro(Luminosity& Lum, LOBaur& Fin, NLOPL& Point, long double xp, long double tau, long double mH): _Lumi_int(Lum),_Finite_int(Fin),_Pointlike_int(Point),_xp_int(xp),_tau_int(tau),_mH_int(mH){};
-  Luminosity& _Lumi_int;
-  LOBaur& _Finite_int;
-  NLOPL& _Pointlike_int;
-  long double _xp_int;
-  long double _tau_int;
-  long double _mH_int;
+	public:
+		_par_hadro(Luminosity& Lum, LOBaur& Fin, NLOPL& Point, long double xp, long double tau, long double mH): _Lumi_int(Lum),_Finite_int(Fin),_Pointlike_int(Point),_xp_int(xp),_tau_int(tau),_mH_int(mH){};
+		Luminosity& _Lumi_int;
+		LOBaur& _Finite_int;
+		NLOPL& _Pointlike_int;
+		long double _xp_int;
+		long double _tau_int;
+		long double _mH_int;
 };
 
+class _par_expansion{
+	public:
+		typedef std::function < long double(double)> Partonic_Distr;
+		_par_expansion(Luminosity& Lum, Partonic_Distr part_f, long double xp, long double tau, long double mH):
+						_Lumi_int(Lum), ds_xp_part(part_f),_xp_int(xp),_tau_int(tau),_mH_int(mH){};
+		Luminosity& _Lumi_int;
+		Partonic_Distr ds_xp_part;
+		long double _xp_int;
+		long double _tau_int;
+		long double _mH_int;	
+};

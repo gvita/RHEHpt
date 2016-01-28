@@ -35,9 +35,7 @@ class RHEHpt
 		std::vector< double > Integral_coeffs(unsigned order,double xp,bool heavy_quark = false) const;
 		std::vector< double > Xp_prefactor_coeffs(unsigned order,double xp) const;
 		
-		/* 	Given a vector produced by pt_distr_series_terms, pt_distr_series returns the series up to a specific order. 
-			In this way if you compute the NNNLO distr and at some point you need the NNLO distr you have to recompute nothing */
-		std::vector< double > pt_distr_series_terms(unsigned order, double xp, double N, bool heavy_quark = false) const;
+		long double M(long double x,unsigned i) const;
 
         template<class T> T _an_dim(T as_N) const{ // LO expansion of the LLx anomalous dimension (gamma_s)
 			const T CA = 3.;
@@ -45,8 +43,13 @@ class RHEHpt
 			return lambda/M_PI;
 		}
 
-		template<class T> std::vector< T > pt_distr_series_terms(T N, vector_ref integral_coeff_list,
-																	vector_ref xp_coeff_list, unsigned order) const {
+		/* 	Given a vector produced by pt_distr_series_terms, pt_distr_series returns the series up to a specific order. 
+			In this way if you compute the NNNLO distr and at some point you need the NNLO distr you have to recompute nothing */
+		std::vector< double > pt_distr_series_terms(unsigned order, double xp, double N,
+													bool heavy_quark = false, bool Nspace = true) const;
+
+		template<class T> std::vector< T > pt_distr_series_terms(T N, vector_ref integral_coeff_list, vector_ref xp_coeff_list,
+																 unsigned order, bool Nspace = true) const {
 		/* 	This version returns a vector of pt_distr_series_terms, given a vector produced by Integral_coeffs and another
 			one produced by Xp_prefactor_coeffs. In this way the N dipendence is factorized from the xp	depend terms,
 			which is crucial when computing the inverse mellin transform of the pt distribution	without recomputing each
@@ -62,10 +65,16 @@ class RHEHpt
 				integral_coeff_list[i] * xp_coeff_list[j] --> M^(i+j)
 		*/
 
-			T M = _an_dim(_as/N);
-
 			std::vector<T> terms;
-			terms.push_back(M*integral_coeff_list[1]*xp_coeff_list[0]); // integral_coeff_list[i] * xp_coeff_list[j] --> M^(i+j)
+			T M_N, x;
+			if ( Nspace ){ 
+				M_N = _an_dim(_as/N);
+				terms.push_back(M_N*integral_coeff_list[1]*xp_coeff_list[0]); // integral_coeff_list[i] * xp_coeff_list[j] --> M^(i+j)
+			}
+			else{
+				x = N;
+				terms.push_back( M(x,1)*integral_coeff_list[1]*xp_coeff_list[0]); // M(x,n) = inverse mellin of M^n at x
+			}
 			if(order > 1){
 				for(unsigned i = 2 ; i < order + 1 ; ++i){
 		
@@ -74,10 +83,12 @@ class RHEHpt
 					std::vector< T > tmp( indices.size() );
 		
 					// compute all coefficients of the i-th order
-					std::transform(indices.cbegin(),indices.cend(),tmp.begin(),[&](const std::array<unsigned,2>& index_pair){
+					std::transform(indices.cbegin(),indices.cend(),tmp.begin(),[&](const std::array<unsigned,2>& index_pair) -> T{
 						//N.B. by definition of partition_of(), index_pair[0] >= index_pair[1]
-						return std::pow(M,i)*(  integral_coeff_list[index_pair[0]]*xp_coeff_list[ index_pair[1] ]) ; 
-			
+						if ( Nspace )
+							return std::pow(M_N,i)*(  integral_coeff_list[index_pair[0]]*xp_coeff_list[ index_pair[1] ]) ;
+						else
+							return M(x,i)*(  integral_coeff_list[index_pair[0]]*xp_coeff_list[ index_pair[1] ]) ;
 					});
 					terms.insert(terms.end(),tmp.begin(),tmp.end());
 				}
@@ -92,6 +103,7 @@ class RHEHpt
 			return terms;
 
 		}
+
 		
 		template<class T> T pt_distr_series(const std::vector< T >& terms,unsigned order) const {
 			unsigned useful_number_of_terms = ( order*(order + 3) ) / 2 -1; // sum_{n=1}^order (n + 1)
@@ -108,22 +120,21 @@ class RHEHpt
 		}
 
 
-		double pt_distr_series(unsigned order, double xp, double N, bool heavy_quark = false) const;
+		double pt_distr_series(unsigned order, double xp, double N, bool heavy_quark = false,bool Nspace = true) const;
 
+		long double pt_distr_hadro(long double pt, unsigned int order = 1, bool heavyquark = false);
+		
 		inline double get_yt() const{ return (_mT*_mT)/(_mH*_mH); }
 		inline double get_yb() const{ return (_mB*_mB)/(_mH*_mH); }
 		inline double get_alphas() const{ return _as; }
 		inline PDF_ptr get_PDF() const { return _PDF; }
 		inline double get_scale() const{ return _CME; }
 		inline double get_mH() const{ return _mH; }
-		inline double get_x() const{ return std::pow(_mH/_CME,2.); }
 		inline double get_xp(double pt) const { return std::pow(pt/_mH,2.);}
-		inline double get_tau() const{return std::pow(_mH/_CME,2.); }
+		inline double get_x() const{ return std::pow(_mH/_CME,2.); }
+		inline double get_tau() const {return std::pow(_mH/_CME,2.); }
 
-
-		void set_mh(double mh){
-			_mH = mh;
-		}		
+		void set_mh(double mh){ _mH = mh;}		
 		void set_mt(double mt){ _mT = mt;}
 		void set_mb(double mb){ _mB = mb;}
 		void set_mur(double mur){ 
@@ -132,43 +143,47 @@ class RHEHpt
 		  Exact_FO_fullmass.SetAS(_as);
 		  Exact_FO_PL.SetAS(_as);
 		}
+	
 		void set_muf(double muf){
 		  _muF=muf;
 		  _Lum.Cheb_Lum(muf);
 		}
-		void set_choice(unsigned int CHOICE){
-		if(CHOICE > 3 )
-		    std::cout << "Error invalid choice; set a number from 0 to 3" << std::endl;  
-		  else {
-		    _choice = CHOICE;
-		    Exact_FO_fullmass.setchoice(_choice);
-		  }
-		}
 
-        virtual ~RHEHpt();
-        
         void set_CME_collider(double Q){
             _CME = Q;
             _s = Q*Q;
         }
-        
+		
+		void set_choice(unsigned int CHOICE){
+			if(CHOICE > 3 )
+		    	std::cout << "Error invalid choice; set a number from 0 to 3" << std::endl;  
+			else{
+				_choice = CHOICE;
+				Exact_FO_fullmass.setchoice(_choice);
+			}
+		}
+
+		// dimensionless LO cross section of the pointlike inclusive production. It plays the role of a normalization factor.
+		inline long double SIGMA0() const { return (_as*_as) * std::sqrt(2)*Gf/(576.*M_PIl); } 
+
+        virtual ~RHEHpt();
+                
         std::complex<long double> Lum_gg_N(std::complex<long double> N){
         	return _Lum.CLum_gg_N(N);
         }
+        
         long double Lum_gg_x(long double x){
-	  return _Lum.CLum_gg_x(x);
-	}
-
-    	LOBaur Exact_FO_fullmass;
-	NLOPL  Exact_FO_PL;
+        	return _Lum.CLum_gg_x(x);
+        }
         
         /* utility class _parameters. This has to be public because it has to be seen by the Cuba integrand. */
    		#include "parameters.h"
         
-        //Fixed Order part
-        
-        long double sigma_part(long double CME_part, long double pt, unsigned int order=0, unsigned int choice=0, bool heavyquark=true);
-	long double sigma_hadro(long double pt, unsigned int order=0, unsigned int choice=0, bool heavyquark=true);
+		//Fixed Order part
+		long double sigma_part(long double CME_part, long double pt, unsigned int order=0, unsigned int choice=0, bool heavyquark=true);
+		long double sigma_hadro_FO(long double pt, unsigned int order=0, unsigned int choice=0, bool heavyquark=true);
+    	LOBaur Exact_FO_fullmass;
+		NLOPL  Exact_FO_PL;
         
         
     private:
@@ -185,24 +200,16 @@ class RHEHpt
         double _mB; // Bottom mass
         double _as; // Current value of alphas, default is alphas(MH)
         double _muR;
-	double _muF;
+		double _muF;
         bool _verbose;
-	unsigned int _choice;
-	LHAPDF::PDF* _PDF;
-	std::function < long double(long double, long double, long double, long double , long double, long double)> F_0f;
-	std::function < long double(long double, long double, long double, long double , long double, long double)> D_0f;
-	Luminosity _Lum;
-//        std::shared_ptr<LHAPDF::PDF> _PDF;
-    //    Luminosity _lumi;   // That provides luminosity functions
-//		std::unique_ptr<LHAPDF::PDFSet> _PDFset;
-    //    std::vector< std::unique_ptr< LHAPDF::PDFSet > > _PDFmembers;
-        	
-
-
+		unsigned int _choice;
+		LHAPDF::PDF* _PDF;
+		std::function < long double(long double, long double, long double, long double , long double, long double)> F_0f;
+		std::function < long double(long double, long double, long double, long double , long double, long double)> D_0f;
+		Luminosity _Lum;
 };
 
 
-
-}
+} //end NAMESPACE RHEHpt
 
 #endif /* __RHEHpt_H__ */
