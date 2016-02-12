@@ -6,5 +6,6 @@
 */*.x
 */*.txt
 */*.o
-lib/*.a
+*/*/.o
+lib/*.so
 .gitconfig

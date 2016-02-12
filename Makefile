@@ -14,13 +14,12 @@ LHAPDFLIBS     := $(shell $(LHAPDFCONFIG) --libs)
 MYLIBS := -L./lib -L/usr/local -lRHEHpt
 MYFLAGS := -I./src
 
-#LOOPTOOLSLIBS := -L/usr/local/lib -looptools -lgfortran -lm
-
 GSLLIBS := -lgsl -lgslcblas -lm
-
 
 CUBAFLAGS := -I$(CUBA_ROOT)
 CUBALIBS := -L$(CUBA_ROOT) -lcuba -lm
+
+HQTLIBS := -lgfortran -lhqt
 
 OBJECTS := $(patsubst %.cpp,%.o,$(wildcard ./src/*.cpp))
 
@@ -36,24 +35,29 @@ C11 := -std=c++11
 
 C14 := -std=c++1y
 
-CXXFLAGS := $(CXXFLAGS) $(MYFLAGS) $(C11)  $(CUBAFLAGS) $(LHAPDFCFLAGS)  $(OPTIM) # $(DEBUG_FLAGS)
+CXXFLAGS := $(CXXFLAGS) $(MYFLAGS) $(C11)  $(CUBAFLAGS) $(LHAPDFCFLAGS) -fPIC $(DEBUG_FLAGS) # $(OPTIM)
 #$(ROOTCFLAGS)
 #$(DEBUG_FLAGS) -Wall
 
 DEBUG := -DDEBUG
 GDB := -ggdb
-
-
-lib/libRHEHpt.a: $(OBJECTS)
-	@echo $(OBJECTS)
-	ar -r $@ $^
-
+	
+lib/libRHEHpt.so: $(OBJECTS)
+	$(CXX) -shared -fPIC -o $@ $^
+#	ar -r $@ $^
+	
+lib/libhqt.so:
+	cd hqt; \
+	make libhqt.so; \
+	mv libhqt.so ../lib/.
 	
 %.o: %.cpp %.h
 	${CXX} ${CXXFLAGS} -c $< -o $@
 
-%.x: %.o lib/libRHEHpt.a
-	${CXX} ${CXXFLAGS} -o $@ $< ${MYLIBS} ${GSLLIBS} ${CUBALIBS} ${LHAPDFLIBS}
+%.x: %.o lib/libRHEHpt.so lib/libhqt.so
+	${CXX} ${CXXFLAGS} -o $@ $< ${MYLIBS} ${HQTLIBS} ${GSLLIBS} ${CUBALIBS} ${LHAPDFLIBS}
 
 clean:
-	rm -f *.o *~ *.a *.x src/*.o src/*~ lib/libRHEHpt.a;
+	rm -f *.o *~ *.a *.x src/*.o src/*~ lib/*;\
+	cd hqt;\
+	make clean;

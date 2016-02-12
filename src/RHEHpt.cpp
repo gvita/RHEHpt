@@ -541,89 +541,48 @@ double pt_hadro(double z,void *p){
 
 
 
-long double RHEHpt::sigma_hadro_FO(long double pt, unsigned int order, unsigned int choice, bool heavyquark){
+long double RHEHpt::sigma_hadro_FO_fullmass(long double pt, unsigned int order, unsigned int choice){
 	long double sigma = 0.0;
 	long double sigma_error = 0.0;
 	std::string name;	// A string to identify what has been computed, i.e. a human readable equivalent of order and heavyquark
 
-	if (heavyquark == false){
-		Exact_FO_fullmass.setchoice(choice);
-		_par_hadro par(_Lum,Exact_FO_fullmass,Exact_FO_PL, get_xp(pt),get_tau(),_mH);
-		long double tauprime=(get_tau()) * rho( get_xp(pt) ) ;
-		double precision = 1e-6;
-		double LO_fullmass_ris = 0.0, LO_fullmass_error = 0.0;
-		gsl_function LO_fullmass;
-		gsl_integration_workspace * w = gsl_integration_workspace_alloc (100000);
-		LO_fullmass.function = LO_fullmass_function;
-		LO_fullmass.params = &par;
-		gsl_integration_qags (&LO_fullmass, tauprime, 1.0, 0, precision, 100000,	w, &LO_fullmass_ris, &LO_fullmass_error);
-		gsl_integration_workspace_free (w);
-		sigma = LO_fullmass_ris * tauprime * gev2_to_pb;
-		sigma_error = LO_fullmass_error*tauprime*gev2_to_pb;
-		name = "Sigma_hadro_LO_fullmass";
-	}
-	else {
-		if ( order > 1 ){
-			std::cout << "Error order must be or 0 (LO) or 1(NLO)" << std::endl;
-	 		return 0;
-   		}
-		if ( order == 0 ){
-			_par_hadro par(_Lum,Exact_FO_fullmass,Exact_FO_PL, get_xp(pt),get_tau(),_mH);
-			long double tauprime=(get_tau()) * rho( get_xp(pt) ) ;
-			double precision = 1e-6;
-			double LO_PL_ris = 0.0, LO_PL_error = 0.0;
-			gsl_function LO_PL;
-			gsl_integration_workspace * w = gsl_integration_workspace_alloc (100000);
-			LO_PL.function = LO_PL_function;
-			LO_PL.params = &par;
-			gsl_integration_qags (&LO_PL, tauprime, 1.0, 0, precision, 100000,	w, &LO_PL_ris, &LO_PL_error);
-			gsl_integration_workspace_free (w);
-			sigma = LO_PL_ris * tauprime * gev2_to_pb;
-			sigma_error = LO_PL_error * tauprime * gev2_to_pb;   
-			name = "Sigma_hadro_LO_pointlike";
-		}
-	   	if ( order == 1 ){
-			_par_hadro par(_Lum,Exact_FO_fullmass,Exact_FO_PL, get_xp(pt),get_tau(),_mH);
-			long double tauprime =  get_tau() * rho( get_xp(pt) ) ;
-
-			double NLO_hadro_notsing_ris[1], NLO_hadro_notsing_error[1], NLO_hadro_notsing_prob[1];
-			double epsrel=1.e-6, epsabs=1.e-15;
-			int last = 4;
-			int verbose = 0;
-			int nregions, neval, fail;
-			Cuhre(2, 1, _core_NLO_PL_notsing, &par, 1,
-				epsrel, epsabs, verbose | last,
-				0, 500000, 9,
-				NULL, NULL,
-				&nregions, &neval, &fail, NLO_hadro_notsing_ris, NLO_hadro_notsing_error, NLO_hadro_notsing_prob);
-
-			double NLO_hadro_sing_ris[1], NLO_hadro_sing_error[1], NLO_hadro_sing_prob[1];
-			Cuhre(2, 1, _core_NLO_PL_sing, &par, 1,
-				epsrel, epsabs, verbose | last,
-				0, 500000, 9,
-				NULL, NULL,
-				&nregions, &neval, &fail, NLO_hadro_sing_ris, NLO_hadro_sing_error, NLO_hadro_sing_prob);
-
-			double NLO_hadro_delta_ris = 0.0, NLO_hadro_delta_error = 0.0;
-			gsl_function NLO_delta;
-			gsl_integration_workspace * w = gsl_integration_workspace_alloc (100000);
-			NLO_delta.function = NLO_delta_function;
-			NLO_delta.params = &par;
-			gsl_integration_qags (&NLO_delta, tauprime, 1.0, 0, epsrel, 100000,	w, &NLO_hadro_delta_ris, &NLO_hadro_delta_error);
-			gsl_integration_workspace_free (w);
-
-			double C_factor = _as*_as/(4.*M_PIl*M_PIl)*tauprime*gev2_to_pb;
-
-			sigma = C_factor * (NLO_hadro_delta_ris + NLO_hadro_notsing_ris[0] + NLO_hadro_sing_ris[0] );
-			sigma_error = C_factor * (NLO_hadro_delta_error + NLO_hadro_notsing_error[0] + NLO_hadro_sing_error[0] );
-			name = "Sigma_hadro_NLO_pointlike";
-		}
-	}
+	Exact_FO_fullmass.setchoice(choice);
+	_par_hadro par(_Lum,Exact_FO_fullmass,Exact_FO_PL, get_xp(pt),get_tau(),_mH);
+	long double tauprime=(get_tau()) * rho( get_xp(pt) ) ;
+	double precision = 1e-6;
+	double LO_fullmass_ris = 0.0, LO_fullmass_error = 0.0;
+	gsl_function LO_fullmass;
+	gsl_integration_workspace * w = gsl_integration_workspace_alloc (100000);
+	LO_fullmass.function = LO_fullmass_function;
+	LO_fullmass.params = &par;
+	gsl_integration_qags (&LO_fullmass, tauprime, 1.0, 0, precision, 100000,	w, &LO_fullmass_ris, &LO_fullmass_error);
+	gsl_integration_workspace_free (w);
+	sigma = LO_fullmass_ris * tauprime * gev2_to_pb;
+	sigma_error = LO_fullmass_error*tauprime*gev2_to_pb;
+	name = "Sigma_hadro_LO_fullmass";
 	sigma *= SIGMA0();
 	sigma_error *= SIGMA0();
 
 	std::cout << name + "( " << _CME << " , " << pt << ")= " << sigma << " ± " << sigma_error << std::endl;
 	return sigma;
+
+}
+
+std::vector<double> RHEHpt::sigma_hadro_FO_pointlike(std::vector<double>& ptgrid, unsigned int order){
+	int gridsize = ptgrid.size();
+	std::vector< double > result( gridsize, 0. );
+	if ( order > 1 ){
+			std::cout << "Error order must be or 0 (LO) or 1(NLO)" << std::endl;
+	 		return result;
+   	}
+	double CME = _CME;
+	double MH = _mH;
+	int hqt_order = order + 1;
+	int len = ((_PDF -> set()).name()).length();
+	const char* pdfsetname = (_PDF -> set()).name().c_str();
+	int pdfmem = 0;
+	hqt_( &CME, &MH, &MH, &_muR, &_muR, &hqt_order, pdfsetname, &len, &pdfmem, &ptgrid[0],&result[0],&gridsize);
+   	return result;
 }
 
 long double RHEHpt::pt_distr_hadro(long double pt, unsigned int order, bool heavyquark){
