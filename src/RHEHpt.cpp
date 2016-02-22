@@ -568,20 +568,26 @@ long double RHEHpt::sigma_hadro_FO_fullmass(long double pt, unsigned int order, 
 
 }
 
-std::vector<double> RHEHpt::sigma_hadro_FO_pointlike(std::vector<double>& ptgrid, unsigned int order){
+std::vector<double> RHEHpt::sigma_hadro_FO_pointlike(std::vector<double>& ptgrid, unsigned int order, int channel){
 	int gridsize = ptgrid.size();
 	std::vector< double > result( gridsize, 0. );
 	if ( order > 1 ){
 			std::cout << "Error order must be or 0 (LO) or 1(NLO)" << std::endl;
 	 		return result;
-   	}
+	}
+   	if (channel > 4){
+	  std::cout << "Error channel must be or 0 (all channel) or 1 (GG) or 2 (GQ) or 3 (QQ)" << std::endl;
+	  return result;
+	}
+	channel+=1;
+	std::cout << channel << std::endl;
 	double CME = _CME;
 	double MH = _mH;
 	int hqt_order = order + 1;
 	int len = ((_PDF -> set()).name()).length();
 	const char* pdfsetname = (_PDF -> set()).name().c_str();
 	int pdfmem = 0;
-	hqt_( &CME, &MH, &MH, &_muR, &_muR, &hqt_order, pdfsetname, &len, &pdfmem, &ptgrid[0],&result[0],&gridsize);
+	hqt_( &CME, &MH, &MH, &_muR, &_muR, &hqt_order, pdfsetname, &len, &pdfmem, &ptgrid[0],&result[0],&gridsize, &channel);
    	return result;
 }
 

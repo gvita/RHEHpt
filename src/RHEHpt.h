@@ -181,7 +181,7 @@ class RHEHpt
 		//Fixed Order part
 		long double sigma_part(long double CME_part, long double pt, unsigned int order=0, unsigned int choice=0, bool heavyquark=true);
 		long double sigma_hadro_FO_fullmass(long double pt, unsigned int order=0, unsigned int choice=0);
-		std::vector<double> sigma_hadro_FO_pointlike (std::vector<double>& ptgrid, unsigned int order=0);
+		std::vector<double> sigma_hadro_FO_pointlike (std::vector<double>& ptgrid, unsigned int order=0,int channel=1);
     	LOBaur Exact_FO_fullmass;
 		NLOPL  Exact_FO_PL;
         
@@ -211,7 +211,7 @@ class RHEHpt
 
 extern "C" {
 	void hqt_(double* sroot, double* amh, double* resummscale,  double* mur, double* muf, int* flag1,
-			  const char* name, int* namelen, int* mem, double* ptgrid, double* result,int* gridsize);
+			  const char* name, int* namelen, int* mem, double* ptgrid, double* result,int* gridsize, int* channel2);
 }
 
 

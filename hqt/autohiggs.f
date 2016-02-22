@@ -1,5 +1,5 @@
       subroutine hqt(CME,higgsmass,rscale,Murin,Mufact,order,pdfsetname,
-     .pdfsetnamelen,pdfmember,ptgrid,result,gridsize)
+     .pdfsetnamelen,pdfmember,ptgrid,result,gridsize,channel2)
 
 c.....This subroutine computes the Higgs boson qt distribution
 c.....in pp collisions at LO and NLO accuracy.
@@ -15,7 +15,7 @@ c.....it returns by filling the vector result
       implicit none
 c.....Argoument definitions
       real *8 CME,higgsmass,rscale,Murin,Mufact
-      integer order,pdfsetnamelen,gridsize,i
+      integer order,pdfsetnamelen,gridsize,i,channel2
       character*64 pdfsetname
       integer pdfmember
 	  real* 8 ptgrid (gridsize)
@@ -131,7 +131,7 @@ c................(NEWA3: Flag for the new/old version of A3)
       nf=5
       flag=0
       flagalphas=0
-      channel=1
+      channel=channel2
       NEWA3=.true.
 
 
