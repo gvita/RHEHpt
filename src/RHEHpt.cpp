@@ -230,17 +230,17 @@ std::vector<double> RHEHpt::Integral_coeffs(unsigned order, double xp, bool HQ) 
 	if(order < 1 ) return std::vector<double>(1,0.); 
 	std::vector<double> coeff_list( order + 1 );
 
-	coeff_list[0] = 0;
+	coeff_list[0] = 0; // as^2
 	if ( HQ ){
-		coeff_list[1] = 2.;
+		coeff_list[1] = 2.; // as^3
 		if (order == 1) return coeff_list;
 
-		coeff_list[2] = 0.;
+		coeff_list[2] = 0.; // as^4
 		if (order == 2) return coeff_list;
 		
-		coeff_list[3] = 2.;
+		coeff_list[3] = 2.; // as^5
 		if (order == 3) return coeff_list;
-		std::cerr << "N3LO for heavy_quark not implemented." << std::endl;
+		std::cerr << "N3LO not implemented." << std::endl;
 		return std::vector<double>(1,0.);
 	}
 	coeff_list[1] = C(1,0,xp);
@@ -435,13 +435,11 @@ double NLO_PL_notsing_function(double x1,void *p){
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-//FIXME choice should be set via the set_choice method. Also it is not necessary for heavyquark = false
-long double RHEHpt::sigma_part(long double CME_part,long double pt, unsigned int order, unsigned int choice, bool heavyquark){
+long double RHEHpt::sigma_part(long double CME_part,long double pt, unsigned int order, bool heavyquark){
 	long double sigma = 0.0;
 	long double sigma0 = SIGMA0();
 	if ( heavyquark == false ){
 		Exact_FO_fullmass.SetCME(CME_part);
-		Exact_FO_fullmass.setchoice(choice);
 		sigma = sigma0 * Exact_FO_fullmass(get_xp(pt));
 	}
 	else {
@@ -541,12 +539,11 @@ double pt_hadro(double z,void *p){
 
 
 
-long double RHEHpt::sigma_hadro_FO_fullmass(long double pt, unsigned int order, unsigned int choice){
+long double RHEHpt::sigma_hadro_FO_fullmass(long double pt){
 	long double sigma = 0.0;
 	long double sigma_error = 0.0;
 	std::string name;	// A string to identify what has been computed, i.e. a human readable equivalent of order and heavyquark
 
-	Exact_FO_fullmass.setchoice(choice);
 	_par_hadro par(_Lum,Exact_FO_fullmass,Exact_FO_PL, get_xp(pt),get_tau(),_mH);
 	long double tauprime=(get_tau()) * rho( get_xp(pt) ) ;
 	double precision = 1e-6;
@@ -569,53 +566,84 @@ long double RHEHpt::sigma_hadro_FO_fullmass(long double pt, unsigned int order, 
 }
 
 std::vector<double> RHEHpt::sigma_hadro_FO_pointlike(std::vector<double>& ptgrid, unsigned int order, int channel){
+//	int gridsize = ptgrid.size();
+//	std::vector< double > result( gridsize, 0. );
+	std::vector< double > result;
+	if (order == 1 ){
+		for (auto pt : ptgrid){
+			_par_hadro par(_Lum,Exact_FO_fullmass,Exact_FO_PL, get_xp(pt),get_tau(),_mH);
+			long double tauprime=(get_tau()) * rho( get_xp(pt) ) ;
+			double precision = 1e-6;
+			double LO_PL_ris = 0.0, LO_PL_error = 0.0;
+			gsl_function LO_PL;
+			gsl_integration_workspace * w = gsl_integration_workspace_alloc (100000);
+			LO_PL.function = LO_PL_function;
+			LO_PL.params = &par;
+			gsl_integration_qags (&LO_PL, tauprime, 1.0, 0, precision, 100000,      w, &LO_PL_ris, &LO_PL_error);
+			gsl_integration_workspace_free (w);
+			result.push_back( SIGMA0() * LO_PL_ris * tauprime * gev2_to_pb );
+		}
+		return result;
+	}
+	// in this way it always returns a vector of size ptgrid. In caso of an error or a choice of order == 0, the vector is all zero.
 	int gridsize = ptgrid.size();
-	std::vector< double > result( gridsize, 0. );
-	if ( order > 1 ){
-			std::cout << "Error order must be or 0 (LO) or 1(NLO)" << std::endl;
+	result.resize( gridsize, 0. );
+	if ( order == 2){
+	   	if (channel > 4){
+		  std::cout << "Error channel must be or 0 (all channel) or 1 (GG) or 2 (GQ) or 3 (QQ)" << std::endl;
+		  return result;
+		}
+		channel += 1; // channel in hqt starts from 1
+		std::cout << channel << std::endl;
+		double CME = _CME;
+		double MH = _mH;
+		int len = ((_PDF -> set()).name()).length();
+		int hqt_order = order;
+		const char* pdfsetname = (_PDF -> set()).name().c_str();
+		int pdfmem = 0;
+		hqt_( &CME, &MH, &MH, &_muR, &_muR, &hqt_order, pdfsetname, &len, &pdfmem, &ptgrid[0],&result[0],&gridsize, &channel);
+	   	return result;
+	
+	}
+	else if ( order > 2 ){
+			std::cout << "Error order must be or 1 (LO,as^3) or 2 (NLO,as^4)" << std::endl;
 	 		return result;
 	}
-   	if (channel > 4){
-	  std::cout << "Error channel must be or 0 (all channel) or 1 (GG) or 2 (GQ) or 3 (QQ)" << std::endl;
-	  return result;
-	}
-	channel+=1;
-	std::cout << channel << std::endl;
-	double CME = _CME;
-	double MH = _mH;
-	int hqt_order = order + 1;
-	int len = ((_PDF -> set()).name()).length();
-	const char* pdfsetname = (_PDF -> set()).name().c_str();
-	int pdfmem = 0;
-	hqt_( &CME, &MH, &MH, &_muR, &_muR, &hqt_order, pdfsetname, &len, &pdfmem, &ptgrid[0],&result[0],&gridsize, &channel);
-   	return result;
+	return result; // 
 }
 
 long double RHEHpt::pt_distr_hadro(long double pt, unsigned int order, bool heavyquark){
-		double xp = get_xp(pt);
-		
-		// the partonic cross section (at fixed xp, as a function of x)
-		_par_expansion::Partonic_Distr ds_xp_part ( [&](double tau){ 
-			return pt_distr_series(order,xp,tau,heavyquark,false); // false --> not N space but x space
-		}); 
+	double xp = get_xp(pt);
+	std::vector<double> int_coeff = Integral_coeffs( order, xp, heavyquark);
+	std::vector<double> xp_coeff = Xp_prefactor_coeffs( order, xp);
+	
+	// the partonic cross section (at fixed xp, as a function of x)
+	_par_expansion::Partonic_Distr ds_xp_part ( [&](double tau){ 
+		return pt_distr_series(pt_distr_series_terms(tau, int_coeff, xp_coeff, order, false), order); // false --> not N space but x space
+	}); 
 
-		_par_expansion par( _Lum, ds_xp_part, xp , get_tau(), _mH);
+	_par_expansion par( _Lum, ds_xp_part, xp , get_tau(), _mH);
 
-		long double tauprime=(get_tau()) * rho( xp ) ;
+	long double tauprime=(get_tau()) * rho( xp ) ;
 
-		double precision = 1e-6;
-		double ris = 0.0, error = 0.0;
-		gsl_function f;
-		gsl_integration_workspace * w = gsl_integration_workspace_alloc (100000);
-		f.function = pt_hadro;
-		f.params = &par;
-		gsl_integration_qags (&f, tauprime, 1.0, 0, precision, 100000,	w, &ris, &error);
-		gsl_integration_workspace_free (w);
-		long double sigma = ris * tauprime * gev2_to_pb;
-		long double sigma_error = error*tauprime*gev2_to_pb;
-		std::string name = "pt_distr_hadro";
-		std::cout << name + "( " << _CME << " , " << pt << ")= " << sigma << " ± " << sigma_error << std::endl;
-		return sigma;
+	double precision = 1e-6;
+	double ris = 0.0, error = 0.0;
+	gsl_function f;
+	gsl_integration_workspace * w = gsl_integration_workspace_alloc (100000);
+	f.function = pt_hadro;
+	f.params = &par;
+	gsl_integration_qags (&f, tauprime, 1.0, 0, precision, 100000,	w, &ris, &error);
+	gsl_integration_workspace_free (w);
+	long double sigma = ris * tauprime * gev2_to_pb;
+	long double sigma_error = error*tauprime*gev2_to_pb;
+	return sigma;
+}
+
+std::vector<double> RHEHpt::pt_distr_hadro(const std::vector< double >& ptgrid, unsigned int order, bool heavyquark){
+	std::vector< double > result;
+	for (auto pt : ptgrid)
+		result.push_back( pt_distr_hadro(pt, order, heavyquark) );
+	return result;
 }
 
 }

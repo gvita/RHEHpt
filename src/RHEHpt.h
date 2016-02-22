@@ -108,21 +108,20 @@ class RHEHpt
 			unsigned useful_number_of_terms = ( order*(order + 3) ) / 2 -1; // sum_{n=1}^order (n + 1)
 			if(_verbose){
 				std::cout << "useful_number_of_terms = " << useful_number_of_terms << std::endl;
-				for (int i = 0 ; i < useful_number_of_terms ; ++i){
+				for (unsigned int i = 0 ; i < useful_number_of_terms ; ++i){
 					std::cout << terms[i] << " " ;
 				}
 				std::cout << std::endl;	
 			}
-			const double sigma0 = _as * _as * Gf * std::sqrt(2.) / (576. * M_PI);
 			T zero = static_cast<T> (0.);
-			return sigma0 * std::accumulate(terms.cbegin(),terms.cbegin() + useful_number_of_terms,zero);
+			return SIGMA0() * std::accumulate(terms.cbegin(),terms.cbegin() + useful_number_of_terms,zero);
 		}
 
 
 		double pt_distr_series(unsigned order, double xp, double N, bool heavy_quark = false,bool Nspace = true) const;
 
 		long double pt_distr_hadro(long double pt, unsigned int order = 1, bool heavyquark = false);
-		
+		std::vector<double> pt_distr_hadro(const std::vector< double >& ptgrid, unsigned int order = 1, bool heavyquark = false);	
 		inline double get_yt() const{ return (_mT*_mT)/(_mH*_mH); }
 		inline double get_yb() const{ return (_mB*_mB)/(_mH*_mH); }
 		inline double get_alphas() const{ return _as; }
@@ -179,9 +178,9 @@ class RHEHpt
    		#include "parameters.h"
         
 		//Fixed Order part
-		long double sigma_part(long double CME_part, long double pt, unsigned int order=0, unsigned int choice=0, bool heavyquark=true);
-		long double sigma_hadro_FO_fullmass(long double pt, unsigned int order=0, unsigned int choice=0);
-		std::vector<double> sigma_hadro_FO_pointlike (std::vector<double>& ptgrid, unsigned int order=0,int channel=1);
+		long double sigma_part(long double CME_part, long double pt, unsigned int order=1, bool heavyquark=true);
+		long double sigma_hadro_FO_fullmass(long double pt);
+		std::vector<double> sigma_hadro_FO_pointlike (std::vector<double>& ptgrid, unsigned int order = 1, int channel = 1);
     	LOBaur Exact_FO_fullmass;
 		NLOPL  Exact_FO_PL;
         
