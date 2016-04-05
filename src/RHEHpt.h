@@ -186,7 +186,7 @@ class RHEHpt
 		//Fixed Order part
 		long double sigma_part(long double CME_part, long double pt, unsigned int order=1, bool heavyquark=true);
 		long double sigma_hadro_FO_fullmass(long double pt);
-		std::vector<double> sigma_hadro_FO_pointlike (std::vector<double>& ptgrid, unsigned int order = 1, int channel = 1);
+		std::vector<double> sigma_hadro_FO_pointlike (std::vector<double>& ptgrid, unsigned int order = 1);
     	LOBaur Exact_FO_fullmass;
 		NLOPL  Exact_FO_PL;
         

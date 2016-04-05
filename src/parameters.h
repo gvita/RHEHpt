@@ -42,13 +42,14 @@ public:
 
 class _par_hadro{
 	public:
-		_par_hadro(Luminosity& Lum, LOBaur& Fin, NLOPL& Point, long double xp, long double tau, long double mH): _Lumi_int(Lum),_Finite_int(Fin),_Pointlike_int(Point),_xp_int(xp),_tau_int(tau),_mH_int(mH){};
+		_par_hadro(Luminosity& Lum, LOBaur& Fin, NLOPL& Point, long double xp, long double tau, long double mH, unsigned int channel): _Lumi_int(Lum),_Finite_int(Fin),_Pointlike_int(Point),_xp_int(xp),_tau_int(tau),_mH_int(mH),_channel_int(channel){};
 		Luminosity& _Lumi_int;
 		LOBaur& _Finite_int;
 		NLOPL& _Pointlike_int;
 		long double _xp_int;
 		long double _tau_int;
 		long double _mH_int;
+		unsigned int _channel_int;
 };
 
 class _par_expansion{

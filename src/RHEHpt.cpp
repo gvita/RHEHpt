@@ -13,9 +13,11 @@ RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, dou
 {
 	_s = std::pow(CME,2);	 // GeV^2
 	_as=_PDF -> alphasQ(_muR);
+	_Lum.setNf(5);
 	_Lum.Cheb_Lum( _muF );
 	Exact_FO_fullmass.SetAS(_as);
 	Exact_FO_PL.SetAS(_as);
+	
 
 	std::cout << _s << " " << _as << " " << _mH << " " << _mT << " "<< _mB << " " << _muR << " " << _muF << std::endl;		 
 }
@@ -491,17 +493,67 @@ double rho(double xp){
 double LO_fullmass_function(double z,void *p){
 	RHEHpt::_par_hadro *pars=(RHEHpt::_par_hadro *)p;
 	long double tauprime=(pars->_tau_int)* rho(pars -> _xp_int);
+	unsigned int channel=(pars->_channel_int);
 	pars->_Finite_int.SetCME( pars -> _mH_int / std::sqrt(z) * std::sqrt( rho(pars -> _xp_int) ) );
-//	pars->_Finite_int.SetCME( 1000000. );
-//	std::cout << z << "\t" << pars->_Lumi_int.CLum_gg_x(tauprime/z) << std::endl;
-	return (1./z*pars->_Lumi_int.CLum_gg_x(tauprime/z)*pars->_Finite_int(pars->_xp_int)/z);
+	long double ris=0.0;
+	switch (channel){
+	  case(0):{
+	    (pars->_Finite_int).setchannel(1);
+	    ris+= 1./z*pars->_Lumi_int.CLum_gg_x(tauprime/z)*pars->_Finite_int(pars->_xp_int)/z;
+	    (pars->_Finite_int).setchannel(2);
+	    ris+= 1./z*pars->_Lumi_int.CLum_gq_x(tauprime/z)*pars->_Finite_int(pars->_xp_int)/z;
+	    (pars->_Finite_int).setchannel(3);
+	    ris+= 1./z*pars->_Lumi_int.CLum_qqbar_x(tauprime/z)*pars->_Finite_int(pars->_xp_int)/z;
+	    break;
+	  }
+	  case(1):{
+	    (pars->_Finite_int).setchannel(1);
+	    ris+= 1./z*pars->_Lumi_int.CLum_gg_x(tauprime/z)*pars->_Finite_int(pars->_xp_int)/z;
+	    break;
+	  }
+	  case(2):{
+	    (pars->_Finite_int).setchannel(2);
+	    ris+= 1./z*pars->_Lumi_int.CLum_gq_x(tauprime/z)*pars->_Finite_int(pars->_xp_int)/z;
+	    break;
+	  }
+	  case(3):{
+	    (pars->_Finite_int).setchannel(3);
+	    ris+= 1./z*pars->_Lumi_int.CLum_qqbar_x(tauprime/z)*pars->_Finite_int(pars->_xp_int)/z;
+	    break;
+	  }
+	}
+	return (ris);
 }
 
 double LO_PL_function(double z,void *p){
 	RHEHpt::_par_hadro *pars=(RHEHpt::_par_hadro *)p;
 	long double tauprime = (pars->_tau_int) * rho(pars -> _xp_int);
+	unsigned int channel=(pars->_channel_int);
 	pars->_Pointlike_int.SetCME(pars->_mH_int/std::sqrt(z)* std::sqrt( rho(pars -> _xp_int) ) );
-	return ( (1./z) * pars->_Lumi_int.CLum_gg_x(tauprime/z) * pars->_Pointlike_int.LO_PL(pars->_xp_int)/z );
+	long double ris=0.;
+	switch( channel){
+	  case(0):{
+	    (pars->_Pointlike_int).setchannel(1);
+	    ris+=(1./z) * pars->_Lumi_int.CLum_gg_x(tauprime/z) * pars->_Pointlike_int.LO_PL(pars->_xp_int)/z;
+	    (pars->_Pointlike_int).setchannel(2);
+	    ris+=(1./z) * pars->_Lumi_int.CLum_gq_x(tauprime/z) * pars->_Pointlike_int.LO_PL(pars->_xp_int)/z;
+	    (pars->_Pointlike_int).setchannel(3);
+	    ris+=(1./z) * pars->_Lumi_int.CLum_qqbar_x(tauprime/z) * pars->_Pointlike_int.LO_PL(pars->_xp_int)/z;
+	  }
+	  case(1):{
+	    (pars->_Pointlike_int).setchannel(1);
+	    ris+=(1./z) * pars->_Lumi_int.CLum_gg_x(tauprime/z) * pars->_Pointlike_int.LO_PL(pars->_xp_int)/z;
+	  }
+	  case(2):{
+	    (pars->_Pointlike_int).setchannel(2);
+	    ris+=(1./z) * pars->_Lumi_int.CLum_gq_x(tauprime/z) * pars->_Pointlike_int.LO_PL(pars->_xp_int)/z;
+	  }
+	  case(3):{
+	    (pars->_Pointlike_int).setchannel(3);
+	    ris+=(1./z) * pars->_Lumi_int.CLum_qqbar_x(tauprime/z) * pars->_Pointlike_int.LO_PL(pars->_xp_int)/z;
+	  }
+	}
+	return (ris);
 }
 
 int _core_NLO_PL_notsing(const int *ndim, const double x[], const int *ncomp, double res[], void *pars){
@@ -550,7 +602,7 @@ long double RHEHpt::sigma_hadro_FO_fullmass(long double pt){
 	long double sigma_error = 0.0;
 	std::string name;	// A string to identify what has been computed, i.e. a human readable equivalent of order and heavyquark
 
-	_par_hadro par(_Lum,Exact_FO_fullmass,Exact_FO_PL, get_xp(pt),get_tau(),_mH);
+	_par_hadro par(_Lum,Exact_FO_fullmass,Exact_FO_PL, get_xp(pt),get_tau(),_mH,_channel);
 	long double tauprime=(get_tau()) * rho( get_xp(pt) ) ;
 	double precision = 1e-6;
 	double LO_fullmass_ris = 0.0, LO_fullmass_error = 0.0;
@@ -571,13 +623,13 @@ long double RHEHpt::sigma_hadro_FO_fullmass(long double pt){
 
 }
 
-std::vector<double> RHEHpt::sigma_hadro_FO_pointlike(std::vector<double>& ptgrid, unsigned int order, int channel){
+std::vector<double> RHEHpt::sigma_hadro_FO_pointlike(std::vector<double>& ptgrid, unsigned int order){
 //	int gridsize = ptgrid.size();
 //	std::vector< double > result( gridsize, 0. );
 	std::vector< double > result;
 	if (order == 1 ){
 		for (auto pt : ptgrid){
-			_par_hadro par(_Lum,Exact_FO_fullmass,Exact_FO_PL, get_xp(pt),get_tau(),_mH);
+			_par_hadro par(_Lum,Exact_FO_fullmass,Exact_FO_PL, get_xp(pt),get_tau(),_mH,_channel);
 			long double tauprime=(get_tau()) * rho( get_xp(pt) ) ;
 			double precision = 1e-6;
 			double LO_PL_ris = 0.0, LO_PL_error = 0.0;
@@ -595,18 +647,19 @@ std::vector<double> RHEHpt::sigma_hadro_FO_pointlike(std::vector<double>& ptgrid
 	int gridsize = ptgrid.size();
 	result.resize( gridsize, 0. );
 	if ( order == 2){
-	   	if (channel > 4){
+	   	if (_channel > 4){
 		  std::cout << "Error channel must be or 0 (all channel) or 1 (GG) or 2 (GQ) or 3 (QQ)" << std::endl;
 		  return result;
 		}
-		channel += 1; // channel in hqt starts from 1
-		std::cout << channel << std::endl;
+		_channel += 1; // channel in hqt starts from 1
+		std::cout << _channel << std::endl;
 		double CME = _CME;
 		double MH = _mH;
 		int len = ((_PDF -> set()).name()).length();
 		int hqt_order = order;
 		const char* pdfsetname = (_PDF -> set()).name().c_str();
 		int pdfmem = 0;
+		int channel=_channel;
 		hqt_( &CME, &MH, &MH, &_muR, &_muR, &hqt_order, pdfsetname, &len, &pdfmem, &ptgrid[0],&result[0],&gridsize, &channel);
 	   	return result;
 	
