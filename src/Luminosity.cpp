@@ -5,6 +5,7 @@
 
 Luminosity::Luminosity(PDF_ptr thePDF, double MUF, double MUR, std::size_t n):_n(n),_Muf(MUF),_Mur(MUR),_PDF(thePDF)
 {	
+	_Nf=5;
 	for (auto& it : Chebseries)
 		it = gsl_cheb_alloc(_n);
 	for (auto& it : C_larges)	
@@ -67,19 +68,15 @@ Luminosity::~Luminosity(){
 	//std::cout << "distrutto2 " << std::endl;
 }
 
+//CORE FUNCTION (FOR INTERPOLATION)
+
+//gg channel (0)
+
 double f_gg(double x1,void *p){
-//	std::cout.precision(15);
 	Luminosity::par_struct* p_struct = (Luminosity::par_struct *) p;
 	double x2 = p_struct -> t /x1;
 	double Muf = p_struct -> Muf; 
 	Luminosity::PDF_ptr PDF = p_struct -> PDF;
-//	std::cout << " pars : " << std::endl;
-//	std::cout << " muf : " <<  Muf << std::endl;
-//	std::cout << " tau : " <<  p_struct -> t << std::endl;
-//	std::cout << " PDF : " <<  PDF << std::endl;
-//	std::cout << " x1 = " <<  x1 << std::endl;
-//	std::cout << " x2 = " <<  x2 << std::endl;			
-//	std::cout << "PDF: " << x1 << " " << ( PDF-> xfxQ(0,x1,Muf)/x1 * PDF -> xfxQ(0,x2,Muf)/x2 ) / x1 << std::endl;
 	return ( PDF-> xfxQ(0,x1,Muf)/x1 * PDF -> xfxQ(0,x2,Muf)/x2 ) / x1;
 }
 
@@ -103,6 +100,202 @@ double _Lgg(double x, void *p){
 	return (z*_Lum_gg(z,p));
 }
 
+//gq channel (1)
+
+double f_gq(double x1,void *p){
+	Luminosity::par_struct* p_struct = (Luminosity::par_struct *) p;
+	double x2 = p_struct -> t /x1;
+	double Muf = p_struct -> Muf;
+	unsigned int Nf=p_struct-> Nf;
+	Luminosity::PDF_ptr PDF = p_struct -> PDF;
+	double fS=0.;
+	for (int i=0;i<Nf;i++){
+	  fS+=(PDF->xfxQ(0,x1,Muf)/x1*(PDF->xfxQ(i+1,x2,Muf))/x2+PDF->xfxQ(0,x1,Muf)/x1*PDF-> xfxQ(-(i+1),x2,Muf)/x2);
+	}
+	return 2.*fS/x1;
+}
+
+
+double _Lum_gq(double tau,void* p){
+	Luminosity::par_struct* par = (Luminosity::par_struct*) p;
+	par -> t = tau;
+	double precision = 1e-4;
+	double ris = 0.0, error = 0.0;
+	gsl_function Integrand;
+	gsl_integration_workspace * w = gsl_integration_workspace_alloc (1000);
+	Integrand.function = f_gq;
+	Integrand.params = par;
+	gsl_integration_qags (&Integrand, tau, 1.0, 0, precision, 1000,	w, &ris, &error);
+	gsl_integration_workspace_free (w);
+	return ris;
+}
+
+double _Lgq(double x, void *p){
+	double z = std::exp(x);
+	return (z*_Lum_gq(z,p));
+}
+
+//qqbar channel (2)
+
+double f_qqbar(double x1,void *p){
+	Luminosity::par_struct* p_struct = (Luminosity::par_struct *) p;
+	double x2 = p_struct -> t /x1;
+	double Muf = p_struct -> Muf; 
+	unsigned int Nf=p_struct->Nf;
+	Luminosity::PDF_ptr PDF = p_struct -> PDF;
+	double fqqbar=0.;
+	for (int i=0;i<Nf;i++){
+	  fqqbar+= PDF-> xfxQ((i+1),x1,Muf)/x1 * PDF -> xfxQ(-(i+1),x2,Muf)/x2;
+	}
+	return 2.*(fqqbar)/ x1;
+}
+
+
+
+double _Lum_qqbar(double tau,void* p){
+	Luminosity::par_struct* par = (Luminosity::par_struct*) p;
+	par -> t = tau;
+	double precision = 1e-4;
+	double ris = 0.0, error = 0.0;
+	gsl_function Integrand;
+	gsl_integration_workspace * w = gsl_integration_workspace_alloc (1000);
+	Integrand.function = f_qqbar;
+	Integrand.params = par;
+	gsl_integration_qags (&Integrand, tau, 1.0, 0, precision, 1000,	w, &ris, &error);
+	gsl_integration_workspace_free (w);
+	return ris;
+}
+
+double _Lqqbar(double x, void *p){
+	double z = std::exp(x);
+	return (z*_Lum_qqbar(z,p));
+}
+
+//qq channel (3)
+
+double f_qq(double x1,void *p){
+	Luminosity::par_struct* p_struct = (Luminosity::par_struct *) p;
+	double x2 = p_struct -> t /x1;
+	double Muf = p_struct -> Muf; 
+	unsigned int Nf=p_struct->Nf;
+	Luminosity::PDF_ptr PDF = p_struct -> PDF;
+	double fqq=0.;
+	for (int i=0;i<Nf;i++){
+	  fqq+= (PDF-> xfxQ((i+1),x1,Muf)/x1 * PDF -> xfxQ((i+1),x2,Muf)/x2)
+	  +(PDF-> xfxQ(-(i+1),x1,Muf)/x1 * PDF -> xfxQ(-(i+1),x2,Muf)/x2);
+	}
+	return (fqq)/ x1;
+}
+
+
+
+double _Lum_qq(double tau,void* p){
+	Luminosity::par_struct* par = (Luminosity::par_struct*) p;
+	par -> t = tau;
+	double precision = 1e-4;
+	double ris = 0.0, error = 0.0;
+	gsl_function Integrand;
+	gsl_integration_workspace * w = gsl_integration_workspace_alloc (1000);
+	Integrand.function = f_qq;
+	Integrand.params = par;
+	gsl_integration_qags (&Integrand, tau, 1.0, 0, precision, 1000,	w, &ris, &error);
+	gsl_integration_workspace_free (w);
+	return ris;
+}
+
+double _Lqq(double x, void *p){
+	double z = std::exp(x);
+	return (z*_Lum_qq(z,p));
+}
+
+//qqbar prime channel (4)
+
+double f_qqbarprime(double x1,void *p){
+	Luminosity::par_struct* p_struct = (Luminosity::par_struct *) p;
+	double x2 = p_struct -> t /x1;
+	double Muf = p_struct -> Muf; 
+	unsigned int Nf=p_struct->Nf;
+	Luminosity::PDF_ptr PDF = p_struct -> PDF;
+	double fqqbarprime=0.;
+	for (int i=0;i<Nf;i++){
+	  for (int j=0;j<Nf;j++){
+	    if (i != j){
+		fqqbarprime+= (PDF-> xfxQ(-(i+1),x1,Muf)/x1 * PDF -> xfxQ((j+1),x2,Muf)/x2)
+		+(PDF-> xfxQ((i+1),x1,Muf)/x1 * PDF -> xfxQ(-(j+1),x2,Muf)/x2);
+	    }
+	  }
+	}
+	return (fqqbarprime)/ x1;
+}
+
+
+
+double _Lum_qqbarprime(double tau,void* p){
+	Luminosity::par_struct* par = (Luminosity::par_struct*) p;
+	par -> t = tau;
+	double precision = 1e-4;
+	double ris = 0.0, error = 0.0;
+	gsl_function Integrand;
+	gsl_integration_workspace * w = gsl_integration_workspace_alloc (1000);
+	Integrand.function = f_qqbarprime;
+	Integrand.params = par;
+	gsl_integration_qags (&Integrand, tau, 1.0, 0, precision, 1000,	w, &ris, &error);
+	gsl_integration_workspace_free (w);
+	return ris;
+}
+
+double _Lqqbarprime(double x, void *p){
+	double z = std::exp(x);
+	return (z*_Lum_qqbarprime(z,p));
+}
+
+//qq prime channel (5)
+
+double f_qqprime(double x1,void *p){
+	Luminosity::par_struct* p_struct = (Luminosity::par_struct *) p;
+	double x2 = p_struct -> t /x1;
+	double Muf = p_struct -> Muf; 
+	unsigned int Nf=p_struct->Nf;
+	Luminosity::PDF_ptr PDF = p_struct -> PDF;
+	double fqqprime=0.;
+	for (int i=0;i<Nf;i++){
+	  for (int j=0;j<Nf;j++){
+	    if (i != j){
+		fqqprime+= (PDF-> xfxQ((i+1),x1,Muf)/x1 * PDF -> xfxQ((j+1),x2,Muf)/x2)
+		+(PDF-> xfxQ((i+1),x1,Muf)/x1 * PDF -> xfxQ((j+1),x2,Muf)/x2);
+	    }
+	  }
+	}
+	return (fqqprime)/ x1;
+}
+
+
+
+double _Lum_qqprime(double tau,void* p){
+	Luminosity::par_struct* par = (Luminosity::par_struct*) p;
+	par -> t = tau;
+	double precision = 1e-4;
+	double ris = 0.0, error = 0.0;
+	gsl_function Integrand;
+	gsl_integration_workspace * w = gsl_integration_workspace_alloc (1000);
+	Integrand.function = f_qqprime;
+	Integrand.params = par;
+	gsl_integration_qags (&Integrand, tau, 1.0, 0, precision, 1000,	w, &ris, &error);
+	gsl_integration_workspace_free (w);
+	return ris;
+}
+
+double _Lqqprime(double x, void *p){
+	double z = std::exp(x);
+	return (z*_Lum_qqprime(z,p));
+}
+
+
+//_____________________________________________________________________________________________________________________________________
+
+//Function of Interpolation and final results
+
+
 void Luminosity::Cheb_Lum(double muf){
 	double umin=-20.0;
 	for (auto& it : C_larges)	
@@ -112,23 +305,28 @@ void Luminosity::Cheb_Lum(double muf){
 		gsl_cheb_free(it);
 		it = gsl_cheb_alloc(_n);
 	}
-	gsl_function Largegg;
-	Largegg.function = &_Lgg;
+	gsl_function Large;
 	par_struct par;
 	par.PDF = _PDF;
 	par.Muf = muf;
-
-	Largegg.params = &par;
-	gsl_cheb_init(Chebseries[0],&Largegg,umin,0.0);
+	par.Nf = _Nf;
+	
+	Large.params = &par;
+	Large.function = &_Lgg;
+	gsl_cheb_init(Chebseries[0],&Large,umin,0.0);
+	Large.function = &_Lgq;
+	gsl_cheb_init(Chebseries[1],&Large,umin,0.0);
+	Large.function = &_Lqqbar;
+	gsl_cheb_init(Chebseries[2],&Large,umin,0.0);
+	Large.function = &_Lqq;
+	gsl_cheb_init(Chebseries[3],&Large,umin,0.0);
+	Large.function = &_Lqqbarprime;
+	gsl_cheb_init(Chebseries[4],&Large,umin,0.0);
+	Large.function = &_Lqqprime;
+	gsl_cheb_init(Chebseries[5],&Large,umin,0.0);
+	
 	c_large();
  }
-
-//void Luminosity::Resize(size_t n){
-//	_n = n;
-//	for (auto it : Chebseries)
-//		gsl_cheb_free(it);
-//		it = gsl_cheb_alloc(_n);
-//}
 
 void Luminosity::c_large(){
 	double umin = -20.0;

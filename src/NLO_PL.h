@@ -11,7 +11,7 @@
 
 class NLOPL{
 public:
-  NLOPL(double CME, double AS, double MH=125.09, double MUF=125.09, double MUR=125.09):_CME(CME),_mH(MH),_as(AS){
+  NLOPL(double CME, double AS, double MH=125.09, double MUF=125.09, double MUR=125.09, unsigned int channel=1):_CME(CME),_mH(MH),_as(AS),_channel(channel){
       x=std::pow(_mH/_CME,2);
     _muF=std::pow(MUF/_mH,2);
     _muR=std::pow(MUR/_mH,2);
@@ -23,6 +23,7 @@ public:
     _muR=NLO._muR;
     _as=NLO._as;
     x=NLO.x;
+    _channel=NLO._channel;
   }
   void SetCME(double CME){
     _CME = CME;
@@ -30,6 +31,14 @@ public:
   }
   void SetAS(double AS){
     _as=AS;
+  }
+  
+  void setchannel(unsigned int CHANNEL){
+    if ((CHANNEL <1) || (CHANNEL>3)){
+      std::cout << "ERROR: invalid Channel; options are (1)=GG, (2)=GQ, (3)=QQ" << std::endl;
+      CHANNEL=1;
+    }
+    _channel=CHANNEL;
   }
   
   inline double get_alphas() const{ return _as; }
@@ -56,9 +65,11 @@ private:
   long double _CME;
   long double _muF;
   long double _muR;
+  unsigned int _channel;
   long double _as; //VALUE OF as(mH)
   long double _Nc=3.0;
   long double _Nf=5.0;
+  long double _Cf=4./3.;
   long double x; 
   
 };

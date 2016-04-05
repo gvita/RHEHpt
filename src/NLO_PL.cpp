@@ -51,6 +51,10 @@ long double B2pp_ANALITICS(long double x, long double xp){
   
 }
 
+//Delta contribution
+
+//gg channel
+
 long double NLOPL::NLO_PL_delta(double xp){
   const long double rad=std::sqrt((1.-x)*(1.-x)-4.*x*xp);
   const long double t=0.5*(x-1.+rad);
@@ -71,6 +75,7 @@ long double NLOPL::NLO_PL_delta(double xp){
 
   return (ris/rad*2.+2.*x*_Nc*b0*(Jac2*Si5z2-Jac1*Si5z1)+_Nc*_Nf*B2pp_ANALITICS(x,xp));
 }
+
 
 long double NLOPL::NLO_PL_sing_doublediff(double xp, double zz)
 {
@@ -381,12 +386,21 @@ long double NLOPL::LO_PL(double xp){ //we have to multiply later for sigma0 norm
   const long double rad=std::sqrt((1.-x)*(1.-x)-4.*x*xp);
   const long double t=0.5*(x-1.+rad);
   const long double u=0.5*(x-1.-rad);
-  const long double ris=4.*_Nc*(std::pow(1.+(x-1.)*x,2)-2.*(x-1.)*(x-1.)*x*xp+x*x*xp*xp)/(xp*rad);
-  return (ris*_as/(2.*M_PIl));
-  
+  switch(_channel){
+    case(1):{
+      return (4.*_Nc*(std::pow(1.+(x-1.)*x,2)-2.*(x-1.)*(x-1.)*x*xp+x*x*xp*xp)/(xp*rad)*_as/(2.*M_PIl));
+      break;
+    }
+    case(2):{
+      return(_as/(2.*M_PIl)*_Cf*x/rad*((1.+u*u)/(-t)+(1.+t*t)/(-u)));
+      break;
+    }
+    case(3):{
+      return(_as/(2.*M_PIl)*2.*_Cf*_Cf*x/rad*(u*u+t*t));
+      break;
+    }
+  }
 }
-
-
 
 
 

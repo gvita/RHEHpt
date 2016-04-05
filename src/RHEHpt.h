@@ -22,8 +22,8 @@ class RHEHpt
 		typedef LHAPDF::PDF* PDF_ptr;
 		typedef std::function< std::complex<long double>(std::complex<long double>)> c_function;
 
-        RHEHpt(double CME, const std::string& PDFname = "NNPDF30_nnlo_as_0118", double MH = 125.09,
-        	   double MT = 173.3, double MB = 4.18, double MUR=125.09, double MUF=125.09, unsigned choice = 1, bool verbose = false);
+        RHEHpt(double CME, const std::string& PDFname = "PDF4LHC15_nnlo_100", double MH = 125.09,
+        	   double MT = 173.3, double MB = 4.18, double MUR=125.09, double MUF=125.09, unsigned choice = 1, unsigned channel = 0, bool verbose = false);
 		double core_hpt_infinite(double N) const;
         double hpt_infinite(double pt,double N) const;
         double hpt_finite(double pt,double N) const;
@@ -160,6 +160,12 @@ class RHEHpt
 				Exact_FO_fullmass.setchoice(_choice);
 			}
 		}
+		void set_channel(unsigned int CHANNEL){
+		  if (CHANNEL >3)
+		    std::cout << "Error invalid choice;set a number from 0 to 3" << std::endl;
+		  else 
+		    _channel=CHANNEL;
+		}
 
 		// dimensionless LO cross section of the pointlike inclusive production. It plays the role of a normalization factor.
 		inline long double SIGMA0() const { return (_as*_as) * std::sqrt(2)*Gf/(576.*M_PIl); } 
@@ -202,6 +208,7 @@ class RHEHpt
 		double _muF;
         bool _verbose;
 		unsigned int _choice;
+		unsigned int _channel;
 		LHAPDF::PDF* _PDF;
 		std::function < long double(long double, long double, long double, long double , long double, long double)> F_0f;
 		std::function < long double(long double, long double, long double, long double , long double, long double)> D_0f;

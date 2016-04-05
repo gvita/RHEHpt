@@ -8,8 +8,8 @@ using namespace std::placeholders;
 
 namespace RHEHpt{
 
-RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB, double MUR, double MUF, unsigned choice,bool verbose):_PDF(LHAPDF::mkPDF(PDFfile,0)),
-				Exact_FO_fullmass(CME,0.1,MT,MB,MH,choice),Exact_FO_PL(CME,0.1,MH,MUF,MUR), _CME(CME), _mH(MH), _mT(MT), _mB(MB), _muR(MUR), _muF(MUF), _choice(choice), _verbose(verbose), _Lum(_PDF)
+RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB, double MUR, double MUF, unsigned choice, unsigned channel,bool verbose):_PDF(LHAPDF::mkPDF(PDFfile,0)),
+				Exact_FO_fullmass(CME,0.1,MT,MB,MH,choice),Exact_FO_PL(CME,0.1,MH,MUF,MUR), _CME(CME), _mH(MH), _mT(MT), _mB(MB), _muR(MUR), _muF(MUF), _choice(choice),_channel(channel), _verbose(verbose), _Lum(_PDF)
 {
 	_s = std::pow(CME,2);	 // GeV^2
 	_as=_PDF -> alphasQ(_muR);
@@ -438,11 +438,17 @@ double NLO_PL_notsing_function(double x1,void *p){
 long double RHEHpt::sigma_part(long double CME_part,long double pt, unsigned int order, bool heavyquark){
 	long double sigma = 0.0;
 	long double sigma0 = SIGMA0();
+	if (_channel==0){
+	  std::cout<< "TOT channel is not a partonic channel: switch to gg channel major contribution" << std::endl;
+	  _channel=1;
+	}
 	if ( heavyquark == false ){
+		Exact_FO_fullmass.setchannel(_channel);
 		Exact_FO_fullmass.SetCME(CME_part);
 		sigma = sigma0 * Exact_FO_fullmass(get_xp(pt));
 	}
 	else {
+		Exact_FO_PL.setchannel(_channel);
 		if ( order > 1 ){
 			std::cout << "Error order must be or 0 (LO) or 1(NLO)" << std::endl;
 			return 0;
