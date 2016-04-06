@@ -48,8 +48,8 @@ class LOBaur{
 		  }
 		}
 		void setchannel(unsigned int CHANNEL){
-		if((CHANNEL > 3 )||(CHANNEL<1))
-		    std::cout << "Error invalid choice; set a number from 1 to 3" << std::endl;  
+		if((CHANNEL > 6 )||(CHANNEL<1))
+		    std::cout << "Error invalid choice; set a number from 1 to 6" << std::endl;  
 		  else{
 		    _channel=CHANNEL;
 		  }

@@ -5,6 +5,7 @@
 #include <cmath>
 #include <vector>
 #include <complex>
+#include "complex_def.h"
 #include "LHAPDF/LHAPDF.h"
 
 
@@ -34,8 +35,8 @@ public:
   }
   
   void setchannel(unsigned int CHANNEL){
-    if ((CHANNEL <1) || (CHANNEL>3)){
-      std::cout << "ERROR: invalid Channel; options are (1)=GG, (2)=GQ, (3)=QQ" << std::endl;
+    if ((CHANNEL <1) || (CHANNEL>6)){
+      std::cout << "ERROR: invalid Channel; options are (1)=GG, (2)=GQ, (3)=QQbar, (4)=QQ, (5)=QQbar', (6)=QQ'" << std::endl;
       CHANNEL=1;
     }
     _channel=CHANNEL;
@@ -55,7 +56,19 @@ public:
   long double NLO_PL_sing_doublediff(double xp, double z);
   long double NLO_PL_notsing_doublediff(double xp, double z);
   long double NLO_PL_delta(double xp);
-		  
+
+  long double NLO_PL_sing_doublediff_gq(double xp, double z);
+  long double NLO_PL_notsing_doublediff_gq(double xp, double z);
+  long double NLO_PL_delta_gq(double xp);
+  
+  long double NLO_PL_sing_doublediff_qqbar(double xp, double z);
+  long double NLO_PL_notsing_doublediff_qqbar(double xp, double z);
+  long double NLO_PL_delta_qqbar(double xp);
+  
+  long double NLO_PL_notsing_doublediff_qq(double xp, double z);
+  long double NLO_PL_notsing_doublediff_qqprime(double xp, double z);
+  long double NLO_PL_notsing_doublediff_qqbarprime(double xp, double z);
+  
  
   
     

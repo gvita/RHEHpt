@@ -464,11 +464,65 @@ double I_3(RHEHpt::_parameters* par){
 
 double NLO_PL_sing_function(double x1,void *p){
   RHEHpt::_par_part *pars=(RHEHpt::_par_part *)p;
-  return((pars->_Pointlike_int).NLO_PL_sing_doublediff(pars->_xp_int,x1));
+  double ris=0.;
+  switch (pars->_channel_int){
+    case(1):{
+      ris=(pars->_Pointlike_int).NLO_PL_sing_doublediff(pars->_xp_int,x1);
+      break;
+    }
+    case(2):{
+      ris=(pars->_Pointlike_int).NLO_PL_sing_doublediff_gq(pars->_xp_int,x1);
+      break;
+    }
+    case(3):{
+      ris=(pars->_Pointlike_int).NLO_PL_sing_doublediff_qqbar(pars->_xp_int,x1);
+      break;
+    }
+    case(4):{
+      ris=0.;
+      break;
+    }
+    case(5):{
+      ris=0.;
+      break;
+    }
+    case(6):{
+      ris=0.;
+      break;
+    }
+  }
+  return(ris);
 }
 double NLO_PL_notsing_function(double x1,void *p){
   RHEHpt::_par_part *pars=(RHEHpt::_par_part *)p;
-  return((pars->_Pointlike_int).NLO_PL_notsing_doublediff(pars->_xp_int,x1));
+  double ris=0.;
+  switch (pars->_channel_int){
+    case(1):{
+      ris=(pars->_Pointlike_int).NLO_PL_notsing_doublediff(pars->_xp_int,x1);
+      break;
+    }
+    case(2):{
+      ris=(pars->_Pointlike_int).NLO_PL_notsing_doublediff_gq(pars->_xp_int,x1);
+      break;
+    }
+    case(3):{
+      ris=(pars->_Pointlike_int).NLO_PL_notsing_doublediff_qqbar(pars->_xp_int,x1);
+      break;
+    }
+    case(4):{
+      ris=(pars->_Pointlike_int).NLO_PL_notsing_doublediff_qq(pars->_xp_int,x1);
+      break;
+    }
+    case(5):{
+      ris=(pars->_Pointlike_int).NLO_PL_notsing_doublediff_qqbarprime(pars->_xp_int,x1);
+      break;
+    }
+    case(6):{
+      ris=(pars->_Pointlike_int).NLO_PL_notsing_doublediff_qqprime(pars->_xp_int,x1);
+      break;
+    }
+  }
+  return(ris);
 }
 
 
@@ -498,8 +552,8 @@ long double RHEHpt::sigma_part(long double CME_part,long double pt, unsigned int
 		}
 		if( order == 1 ){
 			Exact_FO_PL.SetCME(CME_part);
-			_par_part par(Exact_FO_PL,get_xp(pt));
-			double precision = 1e-6;
+			_par_part par(Exact_FO_PL,get_xp(pt),_channel);
+			double precision = 1e-5;
 			double NLO_PL_sing_ris = 0.0, NLO_PL_sing_error = 0.0;
 			gsl_function NLO_PL_sing;
 			gsl_integration_workspace * w = gsl_integration_workspace_alloc (100000);
@@ -514,9 +568,35 @@ long double RHEHpt::sigma_part(long double CME_part,long double pt, unsigned int
 			NLO_PL_notsing.params = &par;
 			gsl_integration_qags (&NLO_PL_notsing, 0.0, 1.0, 0, precision, 100000, w, &NLO_PL_notsing_ris, &NLO_PL_notsing_error);
 			gsl_integration_workspace_free (w);
-			long double NLO_PL_delta_ris= Exact_FO_PL.NLO_PL_delta(get_xp(pt));
-
-			sigma = sigma0*(_as*_as/(4.*M_PIl*M_PIl)*(NLO_PL_delta_ris + NLO_PL_sing_ris + NLO_PL_notsing_ris));
+			long double NLO_PL_delta_ris= 0.;
+			switch(_channel){
+			  case(1):{
+			    NLO_PL_delta_ris=Exact_FO_PL.NLO_PL_delta(get_xp(pt));
+			    break;
+			  }
+			  case(2):{
+			    NLO_PL_delta_ris=Exact_FO_PL.NLO_PL_delta_gq(get_xp(pt));
+			    break;
+			  }
+			  case(3):{
+			    NLO_PL_delta_ris=Exact_FO_PL.NLO_PL_delta_qqbar(get_xp(pt));
+			    break;
+			  }
+			  case(4):{
+			    NLO_PL_delta_ris=0.;
+			    break;
+			  }
+			  case(5):{
+			    NLO_PL_delta_ris=0.;
+			    break;
+			  }
+			  case(6):{
+			    NLO_PL_delta_ris=0.;
+			    break;
+			  }
+			}
+			//sigma = sigma0*(_as*_as/(4.*M_PIl*M_PIl)*(NLO_PL_delta_ris + NLO_PL_sing_ris + NLO_PL_notsing_ris));
+			sigma=(NLO_PL_delta_ris + NLO_PL_sing_ris + NLO_PL_notsing_ris);
 			std::cout << "Sigma_part_NLO( "<< CME_part << " , " << pt << ")= " << sigma << " +- " << sigma0*(_as*_as/(4.*M_PIl*M_PIl)*( NLO_PL_notsing_error + NLO_PL_sing_error ))<< std::endl;
 		}
 	}

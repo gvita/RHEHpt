@@ -174,8 +174,8 @@ class RHEHpt
 		}
 
 		void set_channel(unsigned int CHANNEL){
-		  if (CHANNEL >3)
-		    std::cout << "Error invalid choice;set a number from 0 to 3" << std::endl;
+		  if (CHANNEL >6)
+		    std::cout << "Error invalid choice;set a number from 0 to 6: (0) TOT (1) GG (2) GQ (3) QQbar (4) QQ (5) QQbar' (6) QQ'" << std::endl;
 		  else 
 		    _channel=CHANNEL;
 		}

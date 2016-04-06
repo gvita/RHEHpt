@@ -273,6 +273,7 @@ long double LOBaur::MatrixElementFO(long double xp){
     }
 	  
   }
+  return 0;
 }
 long double LOBaur::sigmapartLO(long double xp)
 {

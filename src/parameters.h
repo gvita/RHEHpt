@@ -34,9 +34,10 @@ class _parameters{
 
 class _par_part{
 public:
-  _par_part(NLOPL& Point, long double xp):_Pointlike_int(Point),_xp_int(xp){}
+  _par_part(NLOPL& Point, long double xp, unsigned int channel):_Pointlike_int(Point),_xp_int(xp),_channel_int(channel){}
   NLOPL& _Pointlike_int;
   long double _xp_int;
+  unsigned int _channel_int;
   
 };
 
