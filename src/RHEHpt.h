@@ -8,11 +8,14 @@
 #include "Luminosity.h"
 #include "NLO_PL.h"
 #include "LHAPDF/LHAPDF.h"
+#include "interpolator.h"
 
 namespace RHEHpt
 {
     constexpr long double Gf = 0.00001166364; // Fermi constant in GeV^-2
     constexpr long double gev2_to_pb = 389379304.; // GeV^-2 to pb conversion factor == (hc)^2 
+    constexpr double yt_def = 1.917;  // (m_t/m_H)^2 with m_t = 173.21 and  m_h = 125.09, 2015 pdg values
+    constexpr double yb_def = 0.00112;  // (m_b/m_H)^2 with m_b = 4.18 and  m_h = 125.09, 2015 pdg values
    	
 class RHEHpt
 {
@@ -23,7 +26,8 @@ class RHEHpt
 		typedef std::function< std::complex<long double>(std::complex<long double>)> c_function;
 
         RHEHpt(double CME, const std::string& PDFname = "PDF4LHC15_nnlo_100", double MH = 125.09,
-        	   double MT = 173.3, double MB = 4.18, double MUR=125.09, double MUF=125.09, unsigned choice = 1, unsigned channel = 0, bool verbose = false);
+        	   double MT = 173.3, double MB = 4.18, double MUR=125.09, double MUF=125.09, unsigned choice = 1,
+        	   unsigned channel = 0, bool verbose = false);
 		double core_hpt_infinite(double N) const;
         double hpt_infinite(double pt,double N) const;
         double hpt_finite(double pt,double N) const;
@@ -120,8 +124,15 @@ class RHEHpt
 
 		double pt_distr_series(unsigned order, double xp, double N, bool heavy_quark = false,bool Nspace = true) const;
 
+
+		/*** HADRONIC CROSS-SECTIONS ***/
+
 		long double pt_distr_hadro(long double pt, unsigned int order = 1, bool heavyquark = false);
 		std::vector<double> pt_distr_hadro(const std::vector< double >& ptgrid, unsigned int order = 1, bool heavyquark = false);	
+		
+
+		/*** get and set methods **/
+
 		inline double get_yt() const{ return (_mT*_mT)/(_mH*_mH); }
 		inline double get_yb() const{ return (_mB*_mB)/(_mH*_mH); }
 		inline double get_alphas() const{ return _as; }
@@ -158,13 +169,24 @@ class RHEHpt
 			else{
 				_choice = CHOICE;
 				Exact_FO_fullmass.setchoice(_choice);
+				_Integral_coeff_interpolator.set_choice(_choice);
 			}
 		}
+
 		void set_channel(unsigned int CHANNEL){
 		  if (CHANNEL >3)
 		    std::cout << "Error invalid choice;set a number from 0 to 3" << std::endl;
 		  else 
 		    _channel=CHANNEL;
+		}
+		
+		static std::vector<double> linear_grid(double x_min, double x_max, std::size_t steps){
+			std::vector<double> grid;
+			double step = (x_max - x_min ) / (steps-1);
+	
+			for (std::size_t ix = 0; ix < steps; ++ix)
+				grid.push_back(x_min + ix*step);
+			return grid;
 		}
 
 		// dimensionless LO cross section of the pointlike inclusive production. It plays the role of a normalization factor.
@@ -192,12 +214,15 @@ class RHEHpt
         
         
     private:
-		/* utility function */
+		/* utility functions */
     	std::vector< std::array<unsigned,2> > partition_of(unsigned n) const;
     	std::vector< std::array<unsigned,2> > symmetric_partition_of(unsigned n) const;
-
+		double _Integral_coeff_from_file(unsigned order,double xp) const;
+		double _Integral_coeff_from_integrals(unsigned order,double xp) const;
+		
         double R(double as_N) const;
 
+		/* data members */
         double _CME; // center of mass energy of the collider
         double _s;  // hadronic mandelstam variable
         double _mH; // Higgs mass
@@ -213,6 +238,7 @@ class RHEHpt
 		std::function < long double(long double, long double, long double, long double , long double, long double)> F_0f;
 		std::function < long double(long double, long double, long double, long double , long double, long double)> D_0f;
 		Luminosity _Lum;
+		Interpolator _Integral_coeff_interpolator;
 };
 
 extern "C" {

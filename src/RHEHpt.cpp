@@ -8,8 +8,12 @@ using namespace std::placeholders;
 
 namespace RHEHpt{
 
-RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB, double MUR, double MUF, unsigned choice, unsigned channel,bool verbose):_PDF(LHAPDF::mkPDF(PDFfile,0)),
-				Exact_FO_fullmass(CME,0.1,MT,MB,MH,choice),Exact_FO_PL(CME,0.1,MH,MUF,MUR), _CME(CME), _mH(MH), _mT(MT), _mB(MB), _muR(MUR), _muF(MUF), _choice(choice),_channel(channel), _verbose(verbose), _Lum(_PDF)
+RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB, double MUR, double MUF, 
+				unsigned choice,unsigned channel,bool verbose):
+					_PDF(LHAPDF::mkPDF(PDFfile,0)),
+		 			Exact_FO_fullmass(CME,0.1,MT,MB,MH,choice),Exact_FO_PL(CME,0.1,MH,MUF,MUR),
+		 			_CME(CME), _mH(MH), _mT(MT), _mB(MB), _muR(MUR), _muF(MUF), _choice(choice), _channel(channel), _verbose(verbose),
+		 			_Lum(_PDF), _Integral_coeff_interpolator(choice)
 {
 	_s = std::pow(CME,2);	 // GeV^2
 	_as=_PDF -> alphasQ(_muR);
@@ -24,6 +28,7 @@ RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, dou
 
 
 RHEHpt::~RHEHpt(){
+	std::cout << "deleting RHEHpt" << std::endl;
 	delete _PDF;
 }
 
@@ -110,7 +115,7 @@ double RHEHpt::hpt_finite(double xp, double N) const
 }
 
 /******************************************/
-/*		RESUMMED Hpt EXPANSION				*/
+/*		RESUMMED Hpt EXPANSION			  */
 /******************************************/
 
 
@@ -130,10 +135,12 @@ double half_C( RHEHpt::_parameters* par){
 	
 }
 
+
 double RHEHpt::C(unsigned j, unsigned k,double xp) const
-{
+{	
 	const double yt = (_mT*_mT) / (_mH*_mH);
 	const double yb = (_mB*_mB) / (_mH*_mH);
+
 	const double F_constant = 4608.*std::pow(M_PI,3.);
 	if ( k*j != 0 ) {
 		_parameters par;
@@ -200,6 +207,7 @@ double RHEHpt::C(unsigned j, unsigned k,double xp) const
 			break;
 		}
 	}
+	
 }
 
 
@@ -227,12 +235,37 @@ std::vector< std::array<unsigned,2> > RHEHpt::symmetric_partition_of(unsigned n)
 	return result;
 }
 
+double RHEHpt::_Integral_coeff_from_integrals(unsigned i, double xp) const
+{
+	// get couples of int (x,y) s.t. x + y = i and x >= y
+	std::vector< std::array<unsigned,2> > indices = partition_of(i); 
+	std::vector<double> tmp(indices.size());
+	std::cout << "number of couples at order " << i << " = " << indices.size() << std::endl;
+	// compute all coefficients of the i-th order (for i=4 they are c_{1,3} and c_{2,2}), store result in tmp
+	std::transform(indices.cbegin(),indices.cend(),tmp.begin(),[&](const std::array<unsigned,2>& index_pair){
+		std::cout << "computing C(" << index_pair[0] << "," << index_pair[1] << ",xp)" << std::endl;
+		return C(index_pair[0],index_pair[1],xp); 
+	});
+	
+	return 2.*std::accumulate(tmp.cbegin(),tmp.cend(),0.); // sum of the partial coefficients. 2 comes from M1=M2 symm
+}
+
+double RHEHpt::_Integral_coeff_from_file(unsigned order,double xp) const
+{
+	if (order > 3) return _Integral_coeff_from_integrals(order,xp); // N3LO and beyond not precomputed
+	else if(order > 1) return _Integral_coeff_interpolator(order,xp);
+	else if (order == 1) return C(1,0,xp);
+	else return 0;
+}
+
+
 std::vector<double> RHEHpt::Integral_coeffs(unsigned order, double xp, bool HQ) const
 { 
 	if(order < 1 ) return std::vector<double>(1,0.); 
 	std::vector<double> coeff_list( order + 1 );
 
 	coeff_list[0] = 0; // as^2
+
 	if ( HQ ){
 		coeff_list[1] = 2.; // as^3
 		if (order == 1) return coeff_list;
@@ -245,20 +278,24 @@ std::vector<double> RHEHpt::Integral_coeffs(unsigned order, double xp, bool HQ) 
 		std::cerr << "N3LO not implemented." << std::endl;
 		return std::vector<double>(1,0.);
 	}
+	
+	/**** finite mass case ****/
+	
 	coeff_list[1] = C(1,0,xp);
 
 	if(order > 1){
-		for(unsigned i = 2 ; i < order + 1 ; ++i){
-			// get couples of int (x,y) s.t. x + y = i and x >= y
-			std::vector< std::array<unsigned,2> > indices = partition_of(i); 
-			std::vector<double> tmp(indices.size());
-			std::cout << "number of couples at order " << i << " = " << indices.size() << std::endl;
-			// compute all coefficients of the i-th order (for i=4 they are c_{1,3} and c_{2,2}), store result in tmp
-			std::transform(indices.cbegin(),indices.cend(),tmp.begin(),[&](const std::array<unsigned,2>& index_pair){
-				std::cout << "computing C(" << index_pair[0] << "," << index_pair[1] << ",xp)" << std::endl;
-				return C(index_pair[0],index_pair[1],xp); 
-			});
-			coeff_list[i] = 2.*std::accumulate(tmp.cbegin(),tmp.cend(),0.); // sum of the partial coefficients. 2 comes from M1=M2 symm
+		const double yt = get_yt();
+		const double yb = get_yb();
+		
+		/* If yb ~ yb_def and yt ~ yt_def use precomputed coefficients.
+		   We give a 1% tolerance in the check, since, experimentally there is about a 1% uncertainty on the quark/higgs mass.*/
+		if (std::abs(yb - yb_def)/yb_def < 0.01 && std::abs(yt - yt_def)/yt_def < 0.01 ){
+			for(unsigned i = 2 ; i < order + 1 ; ++i)
+				coeff_list[i] = _Integral_coeff_from_file(i,xp);
+		}
+		else{
+			for(unsigned i = 2 ; i < order + 1 ; ++i)
+				coeff_list[i] = _Integral_coeff_from_integrals(i,xp);
 		}
 	}
 	return coeff_list; // coeff_list[i] should go with M^i
