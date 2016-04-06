@@ -131,8 +131,8 @@ long double NLOPL::NLO_PL_delta_qqbar(double xp){
   const long double Sidelta1=2.*x/(t)*_Cf*3./2.*std::log(MUF*x/(-t))*2.*_Cf*_Cf*(x*x*xp*xp/(t*t)+t*t);
   const long double Sidelta2=2.*x/(u)*_Cf*3./2.*std::log(MUF*x/(-u))*2.*_Cf*_Cf*(x*x*xp*xp/(u*u)+u*u);
   
-  //return (2.*ris/rad+Jac2*Sidelta2-Jac1*Sidelta1);
-  return 0;
+  return (2.*ris/rad+Jac2*Sidelta2-Jac1*Sidelta1); //OK No Logs
+  //return 0;
 
   
 }
@@ -291,7 +291,7 @@ long double NLOPL::NLO_PL_sing_doublediff_gq(double xp, double zz)
   const long double Si72z1=xx*z/(u)*3./2.*_Cf*_Cf*(t*t+1.)/(-u);
   ris+=1./(1.-z)*(Jac2*Si72-Jac2z1*Si72z1-Jac1*Si71+Jac1z1*Si71z1);//OK (Log semplice non Log squared)
   
-  ris*=(1.-zmin);
+  ris*=(1.-zmin); 
   return ris;
 }
 
@@ -335,33 +335,33 @@ long double NLOPL::NLO_PL_sing_doublediff_qqbar(double xp, double zz)
   const long double Si12=xx/(-t2)*(-_Cf*(1.+z*z)*std::log(MUF*z*xx/(-t2)))*2.*_Cf*_Cf*(xx*xx*xp*xp/(t2*t2)*z*z+t2*t2)/z;
   const long double Si11z1=xx/(-t)*(-_Cf*(2.)*std::log(MUF*xx/(-t)))*2.*_Cf*_Cf*(xx*xx*xp*xp/(t*t)+t*t);
   const long double Si12z1=xx/(-t2)*(-_Cf*(2.)*std::log(MUF*xx/(-u)))*2.*_Cf*_Cf*(xx*xx*xp*xp/(u*u)+u*u);
-  ris+=2./(1.-z)*(Jac2*Si12-Jac2z1*Si12z1-Jac1*Si11+Jac1z1*Si11z1);
+  ris+=2./(1.-z)*(Jac2*Si12-Jac2z1*Si12z1-Jac1*Si11+Jac1z1*Si11z1); //OK no Logs
   
   const long double Si21= xx/(-t1)*(_Cf*(1.+z*z))*2.*_Cf*_Cf*(xx*xx*xp*xp/(t1*t1)*z*z+t1*t1)/z;
   const long double Si22=xx/(-t2)*(_Cf*(1.+z*z))*2.*_Cf*_Cf*(xx*xx*xp*xp/(t2*t2)*z*z+t2*t2)/z;
   const long double Si21z1=xx/(-t)*(_Cf*(2.))*2.*_Cf*_Cf*(xx*xx*xp*xp/(t*t)+t*t);
   const long double Si22z1=xx/(-u)*(_Cf*(2.))*2.*_Cf*_Cf*(xx*xx*xp*xp/(u*u)+u*u);
-  ris+=2.*std::log(1.-z)/(1.-z)*(Jac2*Si22-Jac2z1*Si22z1-Jac1*Si21+Jac1z1*Si21z1);
+  ris+=2.*std::log(1.-z)/(1.-z)*(Jac2*Si22-Jac2z1*Si22z1-Jac1*Si21+Jac1z1*Si21z1); //OK no Logs
   
   const long double Si31=xx*z/(-t1)*(2.*_Cf-_Nc)*_Cf*_Cf*((t1*t1+u1*u1+std::pow(t1/z,2)+std::pow(u1/zb1,2)));
   const long double Si32=xx*z/(-t2)*(2.*_Cf-_Nc)*_Cf*_Cf*((t2*t2+u2*u2+std::pow(t2/z,2)+std::pow(u2/zb1,2)));
   const long double Si31z1=xx/(-t)*(2.*_Cf-_Nc)*_Cf*_Cf*((t*t+u*u+std::pow(t,2)+std::pow(u,2)));
   const long double Si32z1=xx/(-u)*(2.*_Cf-_Nc)*_Cf*_Cf*((u*u+t*t+std::pow(u,2)+std::pow(t,2)));
-  ris+=2.*std::log(1.-z)/(1.-z)*(Jac2*Si32-Jac2z1*Si32z1-Jac1*Si31+Jac1z1*Si31z1);
+  ris+=2.*std::log(1.-z)/(1.-z)*(Jac2*Si32-Jac2z1*Si32z1-Jac1*Si31+Jac1z1*Si31z1); // OK no Logs
   
   const long double Si41=xx*z/(t1)*std::log(Qt1*z/(-t1))*(2.*_Cf-_Nc)*_Cf*_Cf*((t1*t1+u1*u1+std::pow(t1/z,2)+std::pow(u1/zb1,2)));
   const long double Si42=xx*z/(t2)*std::log(Qt2*z/(-t2))*(2.*_Cf-_Nc)*_Cf*_Cf*((t2*t2+u2*u2+std::pow(t2/z,2)+std::pow(u2/zb1,2)));
   const long double Si41z1=xx/t*std::log(xx*xp/(-t))*(2.*_Cf-_Nc)*_Cf*_Cf*((t*t+u*u+std::pow(t,2)+std::pow(u,2)));
   const long double Si42z1=xx/u*std::log(xx*xp/(-u))*(2.*_Cf-_Nc)*_Cf*_Cf*((u*u+t*t+std::pow(u,2)+std::pow(t,2)));
-  ris+=2./(1.-z)*(Jac2*Si42-Jac2z1*Si42z1-Jac1*Si41+Jac1z1*Si41z1);
+  ris+=2./(1.-z)*(Jac2*Si42-Jac2z1*Si42z1-Jac1*Si41+Jac1z1*Si41z1); //OK no Logs
   
   const long double Si51=-xx*z/(-t1)*b0*_Cf*_Cf*((t1*t1+u1*u1));
   const long double Si52=-xx*z/(-t2)*b0*_Cf*_Cf*((t2*t2+u2*u2));
   const long double Si51z1=-xx/(-t)*b0*_Cf*_Cf*((t*t+u*u));
   const long double Si52z1=-xx/(-u)*b0*_Cf*_Cf*((t*t+u*u));
-  ris+=2./(1.-z)*(Jac2*Si52-Jac2z1*Si52z1-Jac1*Si51+Jac1z1*Si51z1);
+  ris+=2./(1.-z)*(Jac2*Si52-Jac2z1*Si52z1-Jac1*Si51+Jac1z1*Si51z1); //OK no Logs
   
-  ris*=(1.-zmin);
+  ris*=(1.-zmin); //OK NO LOGS
   return ris;
 }
 
@@ -782,27 +782,29 @@ long double NLOPL::NLO_PL_notsing_doublediff_qqbar(double xp, double zz){
   //Define and add regular parts in G2s (refer to Glover paper for definition of G2s)
   const long double Fi11= xx/(-t1)*_Cf*(1.-z)*2.*_Cf*_Cf*(t1*t1+z*z*xx*xx*xp*xp/(t1*t1))/z
 			+ xx/(-t1)*(-_Cf*(1.+(1.-z)*(1.-z))/z*std::log(MUF*xx/Q1)+_Cf*z)*_Cf*(z*z+t1*t1)/(-xx*xp*z/(t1));
-  const long double Fi12= xx/(-t2)*_Cf*(1.-z)*2.*_Cf*_Cf*(t2*t2+z*z*xx*xx*xp*xp/(t2*t2))/z
+  
+  const long double Fi12= xx/(-t2)*_Cf*(1.-z)*2.*_Cf*_Cf*(t2*t2+z*z*xx*xx*xp*xp/(t2*t2))/z			
 			+ xx/(-t2)*(-_Cf*(1.+(1.-z)*(1.-z))/z*std::log(MUF*xx/Q2)+_Cf*z)*_Cf*(z*z+t2*t2)/(-xx*xp*z/(t2));
-  ris+=2.*(Jac2*Fi12-Jac1*Fi11);
+  
+  ris+=2.*(Jac2*Fi12-Jac1*Fi11); 
   
   const long double Fi21=1./xp*2.*_Cf*_Cf*((1.-Q1)*(1.-Q1)+(u1+t1-2.*Q1)*(u1+t1-2.*Q1))*std::log(xx*xp/Qt1);
   const long double Fi22=1./xp*2.*_Cf*_Cf*((1.-Q2)*(1.-Q2)+(u2+t2-2.*Q2)*(u2+t2-2.*Q2))*std::log(xx*xp/Qt2);
-  ris+=2.*(Jac2*Fi22-Jac1*Fi21);
+  ris+=(Jac2*Fi22-Jac1*Fi21); // OK Log squared cancel themselves with similar in Fi1
   
   const long double D1pm1=-xx*xp*Q1*(1.+std::log(xx*xp/Qt1))-(xx*xp*xx*xp*z*(1.-z))/(t1)-xx*xp*(1.-z)*(1.-z);
   const long double D1pm2=-xx*xp*Q2*(1.+std::log(xx*xp/Qt2))-(xx*xp*xx*xp*z*(1.-z))/(t2)-xx*xp*(1.-z)*(1.-z);
-  ris+=2.*2.*_Cf*_Cf*_Cf*(Jac2/xp/Q2*D1pm2-Jac1/xp/Q1*D1pm1);
+  ris+=2.*2.*_Cf*_Cf*_Cf*(Jac2/xp/Q2*D1pm2-Jac1/xp/Q1*D1pm1); // OK no Logs
   
   const long double D2pm1=-1./3.*xx*xp*Q1-xx*xp*t1*t1/(6.*z*z)*(11.-12.*Q1/Qt1+3.*Q1*Q1/Qt1/Qt1)+11.*xx*xp*t1*t1/6.;
   const long double D2pm2=-1./3.*xx*xp*Q2-xx*xp*t2*t2/(6.*z*z)*(11.-12.*Q2/Qt2+3.*Q2*Q2/Qt2/Qt2)+11.*xx*xp*t2*t2/6.;
-  ris+=2.*2.*_Nc*_Cf*_Cf*(Jac2/xp/Q2*D2pm2-Jac1/xp/Q1*D2pm1);
+  ris+=2.*2.*_Nc*_Cf*_Cf*(Jac2/xp/Q2*D2pm2-Jac1/xp/Q1*D2pm1); //OK no Logs
   
   const long double D1pp1=xx*xp*u1*u1*(1.-zb1)/A1*(L2b1-L1b1)+xx*xp*(xx-u1)*(xx-u1)*(1.-z)/A1*(L2a1-L1a1)
 			 +xx*xp*xx*Q1*(xx*xp+u1*t1)/(t1*t1)*L1a1-2.*xx*xp*xx*xx*Q1/(A1*B1)*L31+xx*xp*xx*Q1*(2.*xx*xp-u1*t1)/(t1*t1);
   const long double D1pp2=xx*xp*u2*u2*(1.-zb2)/A2*(L2b2-L1b2)+xx*xp*(xx-u2)*(xx-u2)*(1.-z)/A2*(L2a2-L1a2)
 			 +xx*xp*xx*Q2*(xx*xp+u2*t2)/(t2*t2)*L1a2-2.*xx*xp*xx*xx*Q2/(A2*B2)*L32+xx*xp*xx*Q2*(2.*xx*xp-u2*t2)/(t2*t2);
-  ris+=2.*2.*_Cf*_Cf*_Cf*(Jac2/xp/Q2*D1pp2-Jac1/xp/Q1*D1pp1);
+  ris+=2.*2.*_Cf*_Cf*_Cf*(Jac2/xp/Q2*D1pp2-Jac1/xp/Q1*D1pp1); //OK no Logs
   
   const long double D2pp1=xx*xp*u1*u1*(xx-t1)*(1.-zb1)/(2.*A1)*(L1b1-L2b1)+xx*xp*std::pow(xx-u1,3)*(1.-z)/(2.*A1)*(L1a1-L2a1)
 			 -0.5*xx*xp*u1*u1*(L1a1+L1b1)+6.*std::pow(xx*xp*xx*Q1,2)/std::pow(B1,4)-xx*xp*xx*Q1*u1*u1/B1/B1
@@ -812,10 +814,10 @@ long double NLOPL::NLO_PL_notsing_doublediff_qqbar(double xp, double zz){
 			 -0.5*xx*xp*u2*u2*(L1a2+L1b2)+6.*std::pow(xx*xp*xx*Q2,2)/std::pow(B2,4)-xx*xp*xx*Q2*u2*u2/B2/B2
 			 +L32*(xx*xp*u2*u2*(u2+t2)/B2+std::pow(xx*xp*xx*Q2,2)*(1./(A2*B2*B2*B2)-3.*A2/std::pow(B2,5))
 			 +xx*xp*xx*Q2*((t2-3.*u2)/(2.*B2)+A2*(B2*B2+2.*u2*u2)/(4.*B2*B2*B2)+(t2*t2-6.*t2*u2+7.*u2+u2)/(4.*A2*B2)));
-  ris+=2.*2.*_Nc*_Cf*_Cf*(Jac2/xp/Q2*D2pp2-Jac1/xp/Q1*D2pp1);
+  ris+=2.*2.*_Nc*_Cf*_Cf*(Jac2/xp/Q2*D2pp2-Jac1/xp/Q1*D2pp1); //OK no Logs
   
   const long double E11=8./3.*xx-4./3.*xx*xx;
-  ris+=_Nf*_Cf*_Cf*E11*(Jac2-Jac1);
+  ris+=_Nf*_Cf*_Cf*E11*(Jac2-Jac1); //OK no Logs
   
   const long double E21=xx*(Q1-xx*xp)/(Qt1*Qt1)*(std::pow(t1/z,2)+std::pow(u1/zb1,2))+2.*xx;
   const long double E22=xx*(Q2-xx*xp)/(Qt2*Qt2)*(std::pow(t2/z,2)+std::pow(u2/zb2,2))+2.*xx;
@@ -825,7 +827,7 @@ long double NLOPL::NLO_PL_notsing_doublediff_qqbar(double xp, double zz){
 			-xx*xp*Q1*(2.*Qt1+Q1)/(Qt1*Qt1)*(std::pow(t1/z,2)+std::pow(u1/zb1,2))-6.*xp*xx*Q1;
   const long double E32=-2.*xx*xp*(std::pow(u2+t2-2.*Q2,2)-2.*xx*xp)*std::log(xx*xp/Qt2)
 			-xx*xp*Q2*(2.*Qt2+Q2)/(Qt2*Qt2)*(std::pow(t2/z,2)+std::pow(u2/zb2,2))-6.*xp*xx*Q2;
-  ris+=_Cf*_Cf/_Nc*(Jac2/(xp*Q2)*E32-Jac1/(xp*Q1)*E31);
+  ris+=_Cf*_Cf/_Nc*(Jac2/(xp*Q2)*E32-Jac1/(xp*Q1)*E31); //OK no Logs
   			 
   ris*=(1.-zmin);
   return ris;  

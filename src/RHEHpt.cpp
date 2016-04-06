@@ -595,8 +595,8 @@ long double RHEHpt::sigma_part(long double CME_part,long double pt, unsigned int
 			    break;
 			  }
 			}
-			//sigma = sigma0*(_as*_as/(4.*M_PIl*M_PIl)*(NLO_PL_delta_ris + NLO_PL_sing_ris + NLO_PL_notsing_ris));
-			sigma=(NLO_PL_delta_ris + NLO_PL_sing_ris + NLO_PL_notsing_ris);
+			sigma = sigma0*(_as*_as/(4.*M_PIl*M_PIl)*(NLO_PL_delta_ris + NLO_PL_sing_ris + NLO_PL_notsing_ris));
+			//sigma=(NLO_PL_delta_ris + NLO_PL_sing_ris + NLO_PL_notsing_ris);
 			std::cout << "Sigma_part_NLO( "<< CME_part << " , " << pt << ")= " << sigma << " +- " << sigma0*(_as*_as/(4.*M_PIl*M_PIl)*( NLO_PL_notsing_error + NLO_PL_sing_error ))<< std::endl;
 		}
 	}
