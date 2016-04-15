@@ -648,7 +648,7 @@ double LO_PL_function(double z,void *p){
 	unsigned int channel=(pars->_channel_int);
 	pars->_Pointlike_int.SetCME(pars->_mH_int/std::sqrt(z)* std::sqrt( rho(pars -> _xp_int) ) );
 	long double ris=0.;
-	switch( channel){
+	switch(channel){
 	  case(0):{
 	    (pars->_Pointlike_int).setchannel(1);
 	    ris+=(1./z) * pars->_Lumi_int.CLum_gg_x(tauprime/z) * pars->_Pointlike_int.LO_PL(pars->_xp_int)/z;
@@ -656,18 +656,22 @@ double LO_PL_function(double z,void *p){
 	    ris+=(1./z) * pars->_Lumi_int.CLum_gq_x(tauprime/z) * pars->_Pointlike_int.LO_PL(pars->_xp_int)/z;
 	    (pars->_Pointlike_int).setchannel(3);
 	    ris+=(1./z) * pars->_Lumi_int.CLum_qqbar_x(tauprime/z) * pars->_Pointlike_int.LO_PL(pars->_xp_int)/z;
+	    break;
 	  }
 	  case(1):{
 	    (pars->_Pointlike_int).setchannel(1);
 	    ris+=(1./z) * pars->_Lumi_int.CLum_gg_x(tauprime/z) * pars->_Pointlike_int.LO_PL(pars->_xp_int)/z;
+	    break;
 	  }
 	  case(2):{
 	    (pars->_Pointlike_int).setchannel(2);
 	    ris+=(1./z) * pars->_Lumi_int.CLum_gq_x(tauprime/z) * pars->_Pointlike_int.LO_PL(pars->_xp_int)/z;
+	    break;
 	  }
 	  case(3):{
 	    (pars->_Pointlike_int).setchannel(3);
 	    ris+=(1./z) * pars->_Lumi_int.CLum_qqbar_x(tauprime/z) * pars->_Pointlike_int.LO_PL(pars->_xp_int)/z;
+	    break;
 	  }
 	}
 	return (ris);
@@ -708,7 +712,7 @@ double pt_hadro(double z,void *p){
   RHEHpt::_par_expansion *pars=(RHEHpt::_par_expansion *)p;
   long double tauprime = (pars->_tau_int) * rho(pars -> _xp_int) ;
   
-  return (1./z) * pars->_Lumi_int.CLum_gg_x(tauprime/z) * pars -> ds_xp_part( z / rho(pars -> _xp_int) )/z;
+  return (1./z) * pars->_Lumi_int.CLum_gg_x(tauprime/z) * pars -> ds_xp_part( z )/z;
   
 }
 
