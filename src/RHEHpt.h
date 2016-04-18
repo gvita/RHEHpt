@@ -16,6 +16,8 @@ namespace RHEHpt
     constexpr long double gev2_to_pb = 389379304.; // GeV^-2 to pb conversion factor == (hc)^2 
     constexpr double yt_def = 1.917;  // (m_t/m_H)^2 with m_t = 173.21 and  m_h = 125.09, 2015 pdg values
     constexpr double yb_def = 0.00112;  // (m_b/m_H)^2 with m_b = 4.18 and  m_h = 125.09, 2015 pdg values
+    constexpr double CA = 3.;
+    constexpr double CF = 4./3.;
    	
 class RHEHpt
 {
@@ -27,7 +29,7 @@ class RHEHpt
 
         RHEHpt(double CME, const std::string& PDFname = "PDF4LHC15_nnlo_100", double MH = 125.09,
         	   double MT = 173.3, double MB = 4.18, double MUR=125.09, double MUF=125.09, unsigned choice = 1,
-        	   unsigned channel = 0, bool verbose = false);
+        	   unsigned channel = 0, bool running_scale = true, bool verbose = false);
 		double core_hpt_infinite(double N) const;
         double hpt_infinite(double pt,double N) const;
         double hpt_finite(double pt,double N) const;
@@ -35,8 +37,8 @@ class RHEHpt
 	
         double C(unsigned i,unsigned j,double pt) const; // coefficient of the series expansion of the resummed result
 
-		std::vector< double > Integral_coeffs(unsigned order,double xp,bool heavy_quark = false) const;
-		std::vector< double > Xp_prefactor_coeffs(unsigned order,double xp) const;
+		std::vector< double > Integral_coeffs(unsigned order,double xp,bool heavy_quark = false, bool singleM = false) const;
+		std::vector< double > Xp_prefactor_coeffs(unsigned order,double xp,bool singleM = false) const;
 		
 		long double M(long double x,unsigned i) const;
 
@@ -51,7 +53,7 @@ class RHEHpt
 		std::vector< double > pt_distr_series_terms(unsigned order, double xp, double N,
 													bool heavy_quark = false, bool Nspace = true) const;
 
-		template<class T> std::vector< T > pt_distr_series_terms(T N, vector_ref integral_coeff_list, vector_ref xp_coeff_list,
+		template<class T> std::vector< T > pt_distr_series_terms(T N, const vector_ref integral_coeff_list, const vector_ref xp_coeff_list,
 																 unsigned order, bool Nspace = true) const {
 		/* 	This version returns a vector of pt_distr_series_terms, given a vector produced by Integral_coeffs and another
 			one produced by Xp_prefactor_coeffs. In this way the N dipendence is factorized from the xp	depend terms,
@@ -75,6 +77,11 @@ class RHEHpt
 				terms.push_back(M_N*integral_coeff_list[1]*xp_coeff_list[0]); // integral_coeff_list[i] * xp_coeff_list[j] --> M^(i+j)
 			}
 			else{
+//				std::cout << "printing in else " << std::endl;
+//				std::cout << xp_coeff_list[0] << std::endl;
+//				std::cout << integral_coeff_list[1] << std::endl;
+//				std::cout << M(x,1) << std::endl;
+//				std::cout << M(x,1)*integral_coeff_list[1]*xp_coeff_list[0] << std::endl;
 				x = N;
 				terms.push_back( M(x,1)*integral_coeff_list[1]*xp_coeff_list[0]); // M(x,n) = inverse mellin of M^n at x
 			}
@@ -147,20 +154,34 @@ class RHEHpt
 		void set_mt(double mt){ _mT = mt;}
 		void set_mb(double mb){ _mB = mb;}
 		void set_mur(double mur){ 
-		  _muR=mur;
-		  _as=_PDF->alphasQ(mur);
-		  Exact_FO_fullmass.SetAS(_as);
-		  Exact_FO_PL.SetAS(_as);
+			if(_muR != mur){
+				_muR=mur;
+				_as=_PDF->alphasQ(mur);
+				Exact_FO_fullmass.SetAS(_as);
+				Exact_FO_PL.SetAS(_as);
+				Exact_FO_PL.set_mur(mur);
+			}
 		}
 	
 		void set_muf(double muf){
-		  _muF=muf;
-		  _Lum.Cheb_Lum(muf);
+			if(_muF != muf){
+				_muF=muf;
+				_Lum.Cheb_Lum(muf);
+				Exact_FO_PL.set_muf(muf);
+			}		
 		}
 
+		void set_running_scale(double xp){
+			double Q = _mH * ( std::sqrt(1.+xp) + std::sqrt(xp) );
+			set_muf(Q);
+			set_mur(Q);
+		}
+			
         void set_CME_collider(double Q){
             _CME = Q;
             _s = Q*Q;
+            Exact_FO_PL.SetCME(Q);
+            Exact_FO_fullmass.SetCME(Q);
         }
 		
 		void set_choice(unsigned int CHOICE){
@@ -231,14 +252,16 @@ class RHEHpt
         double _as; // Current value of alphas, default is alphas(MH)
         double _muR;
 		double _muF;
+		bool _running_scale;
         bool _verbose;
 		unsigned int _choice;
-		unsigned int _channel;
+		unsigned int _channel; // 0 = gg + gq + qq, 1 = gg, 2 = gq, 3 = qq
 		LHAPDF::PDF* _PDF;
 		std::function < long double(long double, long double, long double, long double , long double, long double)> F_0f;
 		std::function < long double(long double, long double, long double, long double , long double, long double)> D_0f;
 		Luminosity _Lum;
 		Interpolator _Integral_coeff_interpolator;
+//		Cache _the_cache;
 };
 
 extern "C" {

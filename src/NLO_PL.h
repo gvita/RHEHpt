@@ -34,6 +34,14 @@ public:
     _as=AS;
   }
   
+  void set_muf(double muf){
+  	_muF = muf;
+  }
+  
+  void set_mur(double mur){
+  	_muR = mur;
+  }
+  
   void setchannel(unsigned int CHANNEL){
     if ((CHANNEL <1) || (CHANNEL>6)){
       std::cout << "ERROR: invalid Channel; options are (1)=GG, (2)=GQ, (3)=QQbar, (4)=QQ, (5)=QQbar', (6)=QQ'" << std::endl;

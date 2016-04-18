@@ -1,3 +1,6 @@
+#ifndef __COMPLEX_DEF_H__
+#define __COMPLEX_DEF_H__
+
 #include <complex>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_sf_gamma.h>
@@ -29,3 +32,4 @@ long double dilog_r(long double x);
 const std::complex<long double> II(0.0,1.0);
 std::complex<long double> log_c(std::complex<long double> z);
 std::complex<long double> dilog_c(std::complex<long double> z);
+#endif /* __COMPLEX_DEF_H__ */

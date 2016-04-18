@@ -9,11 +9,11 @@ using namespace std::placeholders;
 namespace RHEHpt{
 
 RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, double MB, double MUR, double MUF, 
-				unsigned choice,unsigned channel,bool verbose):
+				unsigned choice,unsigned channel,bool running_scale, bool verbose):
 					_PDF(LHAPDF::mkPDF(PDFfile,0)),
 		 			Exact_FO_fullmass(CME,0.1,MT,MB,MH,choice),Exact_FO_PL(CME,0.1,MH,MUF,MUR),
-		 			_CME(CME), _mH(MH), _mT(MT), _mB(MB), _muR(MUR), _muF(MUF), _choice(choice), _channel(channel), _verbose(verbose),
-		 			_Lum(_PDF), _Integral_coeff_interpolator(choice)
+		 			_CME(CME), _mH(MH), _mT(MT), _mB(MB), _muR(MUR), _muF(MUF), _choice(choice), _channel(channel), 
+		 			_running_scale (running_scale), _verbose(verbose), _Lum(_PDF), _Integral_coeff_interpolator(choice)
 {
 	_s = std::pow(CME,2);	 // GeV^2
 	_as=_PDF -> alphasQ(_muR);
@@ -125,7 +125,7 @@ unsigned int factorial(unsigned int n)
 }
 
 long double RHEHpt::M(long double x,unsigned i) const{ //inverse mellin of _an_dim^i at x
-	return std::pow(3.*_as/M_PIl,i)*std::pow(std::log(1./x),i-1)/factorial(i-1);
+	return std::pow(CA*_as/M_PIl,i)*std::pow(std::log(1./x),i-1)/factorial(i-1);
 }
 
 double I_1_2( RHEHpt::_parameters* par);
@@ -259,10 +259,10 @@ double RHEHpt::_Integral_coeff_from_file(unsigned order,double xp) const
 }
 
 
-std::vector<double> RHEHpt::Integral_coeffs(unsigned order, double xp, bool HQ) const
+std::vector<double> RHEHpt::Integral_coeffs(unsigned order, double xp, bool HQ, bool singleM) const
 { 
 	if(order < 1 ) return std::vector<double>(1,0.); 
-	std::vector<double> coeff_list( order + 1 );
+	std::vector<double> coeff_list( order + 1, 0. );
 
 	coeff_list[0] = 0; // as^2
 
@@ -281,15 +281,16 @@ std::vector<double> RHEHpt::Integral_coeffs(unsigned order, double xp, bool HQ) 
 	
 	/**** finite mass case ****/
 	
-	coeff_list[1] = C(1,0,xp);
+	coeff_list[1] = C(1,0,xp)/(1.+static_cast<int>(singleM));
 
-	if(order > 1){
+	if(order > 1 && !singleM){ // C_j_0 = 0 for all j > 1
 		const double yt = get_yt();
 		const double yb = get_yb();
 		
 		/* If yb ~ yb_def and yt ~ yt_def use precomputed coefficients.
-		   We give a 1% tolerance in the check, since, experimentally there is about a 1% uncertainty on the quark/higgs mass.*/
-		if (std::abs(yb - yb_def)/yb_def < 0.01 && std::abs(yt - yt_def)/yt_def < 0.01 ){
+		   We give a 0.5% tolerance in the check, since, experimentally there is about a 1% uncertainty on the quark/higgs mass.*/
+		if (std::abs(yb - yb_def)/yb_def < 0.005 && std::abs(yt - yt_def)/yt_def < 0.005 ){
+			std::cout << "Using precomputed coefficients" << std::endl;
 			for(unsigned i = 2 ; i < order + 1 ; ++i)
 				coeff_list[i] = _Integral_coeff_from_file(i,xp);
 		}
@@ -301,12 +302,13 @@ std::vector<double> RHEHpt::Integral_coeffs(unsigned order, double xp, bool HQ) 
 	return coeff_list; // coeff_list[i] should go with M^i
 }
 
-std::vector < double > RHEHpt::Xp_prefactor_coeffs(unsigned order, double xp) const
+std::vector < double > RHEHpt::Xp_prefactor_coeffs(unsigned order, double xp, bool singleM) const
 {
 	// compute the analytic expansion of xp^(2 M-1) up to the n-1-th order (cause the O(M^0) term of Integral_coeffs is 0)
 	std::vector<double> xp_coeff_list( order +1 ); // this starts at M^0
-	for(unsigned i = 0 ; i < order+1.	; ++i)
-		xp_coeff_list[i] = std::pow(2.*std::log(xp),i)/factorial(i)/xp;
+	for(unsigned i = 0 ; i < order+1.	; ++i){
+		xp_coeff_list[i] = std::pow((2. - static_cast<int>(singleM))*std::log(xp),i)/factorial(i)/xp;
+	}
 	return xp_coeff_list;
 }
 
@@ -320,11 +322,15 @@ std::vector<double> RHEHpt::pt_distr_series_terms(unsigned order, double xp,doub
 
 	//FIXME need to add R(M)^2
 	if(order < 1 ) return std::vector<double>(1,0.); 
+	if(_channel == 0) {	
+		std::cerr << "Error: Channel 0 selected in partonic cross section.\n" 
+		<< "Partonic channels are separated and the sum of them has no physical meaning at the partonic level.\n"
+		<< "Please select a channel or call the hadronic cross section function." << std::endl;
+		return  std::vector<double>(1,0.); 
+	}
 	
 	// compute the analytic expansion of xp^(2 M-1) up to the n-1-th order (cause the O(M^0) term of Integral_coeffs is 0)
-	std::vector<double> xp_coeff_list( order +1 ); // this starts at M^0
-	for(unsigned i = 0 ; i < order+1.	; ++i)
-		xp_coeff_list[i] = std::pow(2.*std::log(xp),i)/factorial(i)/xp;
+	std::vector<double> xp_coeff_list = Xp_prefactor_coeffs(order,xp); // this starts at M^0
 		
 	// compute the coeff_list for the double integral
 	// this starts at M^0. This is the longest part of the computation
@@ -457,7 +463,7 @@ double I_3(RHEHpt::_parameters* par){
 
 
 /******************************************/
-/*		FIXED ORDER DISTRIBUTION			*/
+/*		FIXED ORDER DISTRIBUTION		  */
 /******************************************/
 
 //CORE FUNCTION
@@ -711,9 +717,7 @@ double NLO_delta_function(double z,void *p){
 double pt_hadro(double z,void *p){
   RHEHpt::_par_expansion *pars=(RHEHpt::_par_expansion *)p;
   long double tauprime = (pars->_tau_int) * rho(pars -> _xp_int) ;
-  
-  return (1./z) * pars->_Lumi_int.CLum_gg_x(tauprime/z) * pars -> ds_xp_part( z )/z;
-  
+  return (1./z) * pars->_Lumi_int.CLum_x(tauprime/z,pars -> channel + 1) * pars -> ds_xp_part( z )/z;  
 }
 
 
@@ -769,7 +773,7 @@ std::vector<double> RHEHpt::sigma_hadro_FO_pointlike(std::vector<double>& ptgrid
 	result.resize( gridsize, 0. );
 	if ( order == 2){
 	   	if (_channel > 4){
-		  std::cout << "Error channel must be or 0 (all channel) or 1 (GG) or 2 (GQ) or 3 (QQ)" << std::endl;
+		  std::cout << "Error channel must be or 0 (all channels) or 1 (GG) or 2 (GQ) or 3 (QQ)" << std::endl;
 		  return result;
 		}
 		_channel += 1; // channel in hqt starts from 1
@@ -781,7 +785,7 @@ std::vector<double> RHEHpt::sigma_hadro_FO_pointlike(std::vector<double>& ptgrid
 		const char* pdfsetname = (_PDF -> set()).name().c_str();
 		int pdfmem = 0;
 		int channel=_channel;
-		hqt_( &CME, &MH, &MH, &_muR, &_muR, &hqt_order, pdfsetname, &len, &pdfmem, &ptgrid[0],&result[0],&gridsize, &channel);
+		hqt_( &CME, &MH, &MH, &_muR, &_muF, &hqt_order, pdfsetname, &len, &pdfmem, &ptgrid[0],&result[0],&gridsize, &channel);
 	   	return result;
 	
 	}
@@ -793,16 +797,67 @@ std::vector<double> RHEHpt::sigma_hadro_FO_pointlike(std::vector<double>& ptgrid
 }
 
 long double RHEHpt::pt_distr_hadro(long double pt, unsigned int order, bool heavyquark){
+
+	if (_channel == 0){
+		long double sigma_tot = 0.;
+		for (short i = 1; i < 4; ++i){
+			set_channel(i);
+			//NOTE: Nice, but can be improved. We don't need to recompute int_coeff, xp_coeff for every channel.'. 
+			sigma_tot += pt_distr_hadro(pt,order,heavyquark);
+		}
+		set_channel(0); //reset channel
+		std::cout << "hadronic cross section for channel " << _channel 
+	     	      << " at " << pt << " GeV computed: " << sigma_tot << " pb" << std::endl;
+		return sigma_tot;
+	}
+	
 	double xp = get_xp(pt);
+	
+	if(_running_scale)
+		set_running_scale(xp);
+	
 	std::vector<double> int_coeff = Integral_coeffs( order, xp, heavyquark);
 	std::vector<double> xp_coeff = Xp_prefactor_coeffs( order, xp);
+	_par_expansion::Partonic_Distr ds_xp_part; // the partonic cross section object
 	
-	// the partonic cross section (at fixed xp, as a function of x)
-	_par_expansion::Partonic_Distr ds_xp_part ( [&](double tau){ 
-		return pt_distr_series(pt_distr_series_terms(tau, int_coeff, xp_coeff, order, false), order); // false --> not N space but x space
-	}); 
+	if ( _channel == 1){	// the gg partonic cross section (at fixed xp, as a function of x)
+		ds_xp_part = _par_expansion::Partonic_Distr( [&](double tau){ 
+			return pt_distr_series(pt_distr_series_terms(tau, int_coeff, xp_coeff, order, false), order); // false = not N space but x space
+		});
+	}
+	else if ( _channel == 2){ 	// the qg partonic cross section (at fixed xp, as a function of x)
+		std::vector<double> int_coeff_single = Integral_coeffs( order, xp, heavyquark, true);
+		std::vector<double> xp_coeff_single = Xp_prefactor_coeffs( order, xp, true); //expansion of xp^{M-1}
+//		std::cout << "printing coefflist middle" << std::endl;
+//			for (auto it: int_coeff_single){
+//				std::cout << it  << " " ;
+//			}
+//			std::cout << std::endl ;
 
-	_par_expansion par( _Lum, ds_xp_part, xp , get_tau(), _mH);
+		ds_xp_part = _par_expansion::Partonic_Distr( [=](double tau){ 
+//			std::cout << "printing coefflist after" << std::endl;
+//			for (auto it: int_coeff_single){
+//				std::cout << it  << " " ;
+//			}
+//			std::cout << std::endl ;
+
+			double hpt_M1_M2 = pt_distr_series(pt_distr_series_terms<double>(tau, int_coeff, xp_coeff, order, false), order);
+			double hpt_M1_0 = pt_distr_series(pt_distr_series_terms<double>(tau, int_coeff_single, xp_coeff_single, order, false), order);
+			return (CF/CA) *(hpt_M1_M2 - hpt_M1_0);
+		});
+	}
+	else if ( _channel == 3){ 	// the qq partonic cross section (at fixed xp, as a function of x)
+		std::vector<double> int_coeff_single = Integral_coeffs( order, xp, heavyquark, true);
+		std::vector<double> xp_coeff_single = Xp_prefactor_coeffs( order, xp, true); //expansion of xp^{M-1}
+		ds_xp_part = _par_expansion::Partonic_Distr( [=](double tau){ 
+			double hpt_M1_M2 = pt_distr_series<double>(pt_distr_series_terms(tau, int_coeff, xp_coeff, order, false), order);
+			double hpt_M1_0 = pt_distr_series<double>(pt_distr_series_terms(tau, int_coeff_single, xp_coeff_single, order, false), order);
+			return std::pow(CF/CA,2.) *(hpt_M1_M2 - 2.*hpt_M1_0);
+		});
+	}
+
+	
+	_par_expansion par( _Lum, ds_xp_part, xp , get_tau(), _mH,_channel);
 
 	long double tauprime=(get_tau()) * rho( xp ) ;
 
@@ -816,6 +871,8 @@ long double RHEHpt::pt_distr_hadro(long double pt, unsigned int order, bool heav
 	gsl_integration_workspace_free (w);
 	long double sigma = ris * tauprime * gev2_to_pb;
 	long double sigma_error = error*tauprime*gev2_to_pb;
+	std::cout << "hadronic cross section for channel " << _channel 
+	          << " at " << pt << " GeV computed: " << sigma << " pb\ta_s = " << _as << std::endl;
 	return sigma;
 }
 

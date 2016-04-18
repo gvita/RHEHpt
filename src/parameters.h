@@ -56,11 +56,12 @@ class _par_hadro{
 class _par_expansion{
 	public:
 		typedef std::function < long double(double)> Partonic_Distr;
-		_par_expansion(Luminosity& Lum, Partonic_Distr part_f, long double xp, long double tau, long double mH):
-						_Lumi_int(Lum), ds_xp_part(part_f),_xp_int(xp),_tau_int(tau),_mH_int(mH){};
+		_par_expansion(Luminosity& Lum, Partonic_Distr part_f, long double xp, long double tau, long double mH,unsigned short channel):
+						_Lumi_int(Lum), ds_xp_part(part_f),_xp_int(xp),_tau_int(tau),_mH_int(mH),channel(channel){};
 		Luminosity& _Lumi_int;
 		Partonic_Distr ds_xp_part;
 		long double _xp_int;
 		long double _tau_int;
-		long double _mH_int;	
+		long double _mH_int;
+		unsigned short channel; // 1 = gg, 2 = gq, 3 = qq
 };
