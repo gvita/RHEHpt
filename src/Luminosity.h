@@ -19,12 +19,9 @@ class Luminosity {
 		typedef std::complex<long double> dcomplex;
 		typedef LHAPDF::PDF* PDF_ptr;
 	
-		Luminosity(PDF_ptr thePDF, double MUF=125.09, double MUR=125.09, std::size_t order=20);
+		Luminosity(PDF_ptr thePDF, double MUF, unsigned short NF = 5, std::size_t order=20);
 		Luminosity(const Luminosity& Lumi);
 		virtual ~Luminosity();
-	
-		
-		
 		
 		void Cheb_Lum(double );
 		void c_large();
@@ -54,18 +51,12 @@ class Luminosity {
 		double xfxQ(int channel, double x){
 		  return (_PDF->xfxQ(channel,x,_Muf)/x);
 		}
-		double get_alphas(){
-		  return(_PDF->alphasQ(_Mur));
-		}
 		
 		inline PDF_ptr get_PDF(){
 		  return _PDF;
 		}
 		inline double get_muf(){
 		  return _Muf;
-		}
-		inline double get_mur(){
-		  return _Mur;
 		}
 		inline size_t get_n(){
 		  return _n;
@@ -78,8 +69,8 @@ class Luminosity {
 			unsigned int Nf;
 		};
 		
-		void setNf(unsigned int NF){
-		  if ((NF < 1)|| (NF>6)){
+		void setNf(unsigned short NF){
+		  if ( (NF < 1) || (NF > 6) ){
 		    std::cout << "ERROR: INCONGRUENT NUMBER OF FLAVOUR (1-6 ACCEPTED)" << std::endl;
 		    NF=5.;
 		  }
@@ -89,15 +80,16 @@ class Luminosity {
 
 	private:
 		size_t _n;	//Order of Chebishev approximation
-		std::array< gsl_cheb_series*,6>  Chebseries;
-		std::array< std::vector<double> ,6>  C_larges;
+		std::array< gsl_cheb_series*,3>  Chebseries;
+		std::array< std::vector<double> ,3>  C_larges;
+//		std::array< gsl_cheb_series*,6>  Chebseries;
+//		std::array< std::vector<double> ,6>  C_larges;
 
 		std::vector< std::vector< double > > _T;
 		LHAPDF::PDF* _PDF;
 		
 		double _Muf;
-		double _Mur;
-		unsigned int _Nf;
+		unsigned short _Nf;
 
 };
 

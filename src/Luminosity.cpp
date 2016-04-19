@@ -3,9 +3,8 @@
 #include <functional>
 
 
-Luminosity::Luminosity(PDF_ptr thePDF, double MUF, double MUR, std::size_t n):_n(n),_Muf(MUF),_Mur(MUR),_PDF(thePDF)
+Luminosity::Luminosity(PDF_ptr thePDF, double MUF,  unsigned short NF, std::size_t n):_n(n),_Nf(NF),_Muf(MUF),_PDF(thePDF)
 {	
-	_Nf=5;
 	for (auto& it : Chebseries)
 		it = gsl_cheb_alloc(_n);
 	for (auto& it : C_larges)	
@@ -28,44 +27,9 @@ Luminosity::Luminosity(PDF_ptr thePDF, double MUF, double MUR, std::size_t n):_n
 	Cheb_Lum(MUF);
 
 }
-/*
-Luminosity::Luminosity(const Luminosity& Lumi){
-		  _PDF=Lumi._PDF;
-		  _n=Lumi._n;
-		  _Muf=Lumi._Muf;
-		  _Mur=Lumi._Mur;
-		  for (auto& it : Chebseries)
-		    it = gsl_cheb_alloc(_n);
-		  for (auto& it : C_larges)	
-		    it = std::vector < double >( _n+1 , 0 );
-
-		  for(std::size_t i = 0; i < (_n + 1) ; ++i)
-		    _T.push_back( std::vector < double >(_n+1,0) );
-
-		  _T[0][0]=1.0;
-		  _T[1][0]=0.0;
-		  _T[1][1]=1.0;
-		  for(std::size_t i = 2 ; i < (_n+1) ; i++){
-		    _T[i][0] = - _T[i-2][0];
-		    for(std::size_t j = 1 ; j < (i-1) ; j++){
-		      _T[i][j] = 2*_T[i-1][j-1] - _T[i-2][j];
-		    }
-		    _T[i][i-1] = 2*_T[i-1][i-2];
-		    _T[i][i] = 2*_T[i-1][i-1];
-		  }
-		  Chebseries=Lumi.Chebseries;
-		  for(unsigned k = 0; k < Chebseries.size() ; ++k){
-		    for(unsigned l = 0 ; l < (_n+1) ; l++ )
-		      C_larges[k][l]=Lumi.C_larges[k][l];
-		  }
-}*/
 Luminosity::~Luminosity(){
-	//std::cout << "distruggendo " << std::endl;
  	for (auto& it : Chebseries)
 		gsl_cheb_free(it);
-	 //std::cout << "distrutto " << std::endl;
-	//delete _PDF;
-	//std::cout << "distrutto2 " << std::endl;
 }
 
 //CORE FUNCTION (FOR INTERPOLATION)
@@ -297,7 +261,11 @@ double _Lqqprime(double x, void *p){
 
 
 void Luminosity::Cheb_Lum(double muf){
-	double umin=-20.0;
+	std::cout << "Computing parton luminosities at " << muf << " GeV..." << std::endl;
+	_Muf = muf;
+	
+	double umin = -static_cast<double>(_n);
+
 	for (auto& it : C_larges)	
 		it = std::vector < double >( _n+1 , 0 );
 	
@@ -308,7 +276,7 @@ void Luminosity::Cheb_Lum(double muf){
 	gsl_function Large;
 	par_struct par;
 	par.PDF = _PDF;
-	par.Muf = muf;
+	par.Muf = _Muf;
 	par.Nf = _Nf;
 	
 	Large.params = &par;
@@ -318,31 +286,34 @@ void Luminosity::Cheb_Lum(double muf){
 	gsl_cheb_init(Chebseries[1],&Large,umin,0.0);
 	Large.function = &_Lqqbar;
 	gsl_cheb_init(Chebseries[2],&Large,umin,0.0);
-	Large.function = &_Lqq;
-	gsl_cheb_init(Chebseries[3],&Large,umin,0.0);
-	Large.function = &_Lqqbarprime;
-	gsl_cheb_init(Chebseries[4],&Large,umin,0.0);
-	Large.function = &_Lqqprime;
-	gsl_cheb_init(Chebseries[5],&Large,umin,0.0);
-	
+//	Large.function = &_Lqq;
+//	gsl_cheb_init(Chebseries[3],&Large,umin,0.0);
+//	Large.function = &_Lqqbarprime;
+//	gsl_cheb_init(Chebseries[4],&Large,umin,0.0);
+//	Large.function = &_Lqqprime;
+//	gsl_cheb_init(Chebseries[5],&Large,umin,0.0);
+//	
 	c_large();
  }
 
 void Luminosity::c_large(){
-	double umin = -20.0;
+
+	double umin = -static_cast<double>(_n);
+//	std::cout << " clarge n=" << _n << " umin =" << umin << std::endl;
 
 	std::vector<double*> co_channels;
 	for (auto it : Chebseries)
 		co_channels.push_back(gsl_cheb_coeffs(it));
-
-	for(unsigned k = 0; k < Chebseries.size() ; ++k){
+		
+	std::size_t ser_length = Chebseries.size();
+	
+	for(unsigned k = 0; k < ser_length ; ++k){
 		C_larges[k][0] = - co_channels[k][0]/2.;
 		for(unsigned l = 0 ; l < (_n+1) ; l++ )
 		 	for (unsigned i = l ; i < (_n+1) ; i++ )
 				for(unsigned j = i ; j < (_n+1) ; j++ )
 					C_larges[k][l] += pow(2./umin,l)*gsl_sf_fact(i)/gsl_sf_fact(i-l)*co_channels[k][j]*_T[j][i];
 	}
-
 }
 
 Luminosity::dcomplex Luminosity::CLum_N(dcomplex N, unsigned channel) const {

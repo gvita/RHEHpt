@@ -13,16 +13,13 @@ RHEHpt::RHEHpt(double CME, const std::string& PDFfile, double MH, double MT, dou
 					_PDF(LHAPDF::mkPDF(PDFfile,0)),
 		 			Exact_FO_fullmass(CME,0.1,MT,MB,MH,choice),Exact_FO_PL(CME,0.1,MH,MUF,MUR),
 		 			_CME(CME), _mH(MH), _mT(MT), _mB(MB), _muR(MUR), _muF(MUF), _choice(choice), _channel(channel), 
-		 			_running_scale (running_scale), _verbose(verbose), _Lum(_PDF), _Integral_coeff_interpolator(choice)
+		 			_running_scale (running_scale), _verbose(verbose), _Lum(_PDF,MUF,5), _Integral_coeff_interpolator(choice)
 {
 	_s = std::pow(CME,2);	 // GeV^2
 	_as=_PDF -> alphasQ(_muR);
-	_Lum.setNf(5);
-	_Lum.Cheb_Lum( _muF );
 	Exact_FO_fullmass.SetAS(_as);
 	Exact_FO_PL.SetAS(_as);
 	
-
 	std::cout << _s << " " << _as << " " << _mH << " " << _mT << " "<< _mB << " " << _muR << " " << _muF << std::endl;		 
 }
 
@@ -267,13 +264,13 @@ std::vector<double> RHEHpt::Integral_coeffs(unsigned order, double xp, bool HQ, 
 	coeff_list[0] = 0; // as^2
 
 	if ( HQ ){
-		coeff_list[1] = 2.; // as^3
+		coeff_list[1] = 2.-static_cast<int>(singleM); // as^3
 		if (order == 1) return coeff_list;
 
 		coeff_list[2] = 0.; // as^4
 		if (order == 2) return coeff_list;
 		
-		coeff_list[3] = 2.; // as^5
+		coeff_list[3] = 2.*(1. - static_cast<int>(singleM)); // as^5
 		if (order == 3) return coeff_list;
 		std::cerr << "N3LO not implemented." << std::endl;
 		return std::vector<double>(1,0.);
@@ -290,7 +287,7 @@ std::vector<double> RHEHpt::Integral_coeffs(unsigned order, double xp, bool HQ, 
 		/* If yb ~ yb_def and yt ~ yt_def use precomputed coefficients.
 		   We give a 0.5% tolerance in the check, since, experimentally there is about a 1% uncertainty on the quark/higgs mass.*/
 		if (std::abs(yb - yb_def)/yb_def < 0.005 && std::abs(yt - yt_def)/yt_def < 0.005 ){
-			std::cout << "Using precomputed coefficients" << std::endl;
+	//		std::cout << "Using precomputed coefficients" << std::endl;
 			for(unsigned i = 2 ; i < order + 1 ; ++i)
 				coeff_list[i] = _Integral_coeff_from_file(i,xp);
 		}
@@ -717,7 +714,7 @@ double NLO_delta_function(double z,void *p){
 double pt_hadro(double z,void *p){
   RHEHpt::_par_expansion *pars=(RHEHpt::_par_expansion *)p;
   long double tauprime = (pars->_tau_int) * rho(pars -> _xp_int) ;
-  return (1./z) * pars->_Lumi_int.CLum_x(tauprime/z,pars -> channel + 1) * pars -> ds_xp_part( z )/z;  
+  return (1./z) * pars -> _Lumi_int.CLum_x(tauprime/z, pars -> channel - 1) * pars -> ds_xp_part( z )/z;  
 }
 
 
@@ -776,6 +773,7 @@ std::vector<double> RHEHpt::sigma_hadro_FO_pointlike(std::vector<double>& ptgrid
 		  std::cout << "Error channel must be or 0 (all channels) or 1 (GG) or 2 (GQ) or 3 (QQ)" << std::endl;
 		  return result;
 		}
+		if(_running_scale) std::cerr << "\n*** Attention! ***\nRunning scale is on in RHEHpt, but is not implemented in hqt.\n" << std::endl;
 		_channel += 1; // channel in hqt starts from 1
 		std::cout << _channel << std::endl;
 		double CME = _CME;
@@ -786,6 +784,10 @@ std::vector<double> RHEHpt::sigma_hadro_FO_pointlike(std::vector<double>& ptgrid
 		int pdfmem = 0;
 		int channel=_channel;
 		hqt_( &CME, &MH, &MH, &_muR, &_muF, &hqt_order, pdfsetname, &len, &pdfmem, &ptgrid[0],&result[0],&gridsize, &channel);
+		for (unsigned int i = 0; i < ptgrid.size(); ++i)
+		{
+			result[i]*=_mH*_mH/(2.*ptgrid[i]); // from ptdistr to xpdistr
+		}
 	   	return result;
 	
 	}
@@ -806,15 +808,16 @@ long double RHEHpt::pt_distr_hadro(long double pt, unsigned int order, bool heav
 			sigma_tot += pt_distr_hadro(pt,order,heavyquark);
 		}
 		set_channel(0); //reset channel
-		std::cout << "hadronic cross section for channel " << _channel 
-	     	      << " at " << pt << " GeV computed: " << sigma_tot << " pb" << std::endl;
+		std::cout << "total hadronic cross section at " << pt << " GeV: " << sigma_tot << " pb" << std::endl;
 		return sigma_tot;
 	}
-	
 	double xp = get_xp(pt);
 	
 	if(_running_scale)
 		set_running_scale(xp);
+
+	std::cout << "hadronic cross section for channel " << _channel 
+	          << " at " << pt << " GeV: ";	
 	
 	std::vector<double> int_coeff = Integral_coeffs( order, xp, heavyquark);
 	std::vector<double> xp_coeff = Xp_prefactor_coeffs( order, xp);
@@ -871,8 +874,7 @@ long double RHEHpt::pt_distr_hadro(long double pt, unsigned int order, bool heav
 	gsl_integration_workspace_free (w);
 	long double sigma = ris * tauprime * gev2_to_pb;
 	long double sigma_error = error*tauprime*gev2_to_pb;
-	std::cout << "hadronic cross section for channel " << _channel 
-	          << " at " << pt << " GeV computed: " << sigma << " pb\ta_s = " << _as << std::endl;
+ 	std::cout << sigma << " pb\ta_s = " << _as << std::endl;
 	return sigma;
 }
 
